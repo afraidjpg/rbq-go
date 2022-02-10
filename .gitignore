@@ -1,0 +1,5 @@
+bin/*
+**/config.yaml
+.idea/
+
+unit_test.go

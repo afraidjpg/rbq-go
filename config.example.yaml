@@ -1,0 +1,6 @@
+account:
+    login_qq: -1  # 当前登录的qq号，如果不填写正确，将无法正确判断部分逻辑
+
+websocket:  # websocket正向配置接口，根据你的cqhttp-go的websocket端口设置，默认为127.0.0.1:6700
+    host: 127.0.0.1
+    port: 6700
