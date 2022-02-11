@@ -37,9 +37,8 @@ func reciveListening() {
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				return
+				continue
 			}
-
 			go internal.PushRecvMsg(message)
 		}
 	}()

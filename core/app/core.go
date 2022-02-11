@@ -7,6 +7,7 @@ import "sync"
 // StartApp 启动主程序
 func StartApp() {
 	startListening()
+	listenRecvMsgAndApplyPlugin()
 	startTask()
 	waiting()
 }

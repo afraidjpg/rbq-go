@@ -11,20 +11,20 @@ type PluginFunc func(*msg.RecvNormalMsg)
 
 var pluginQueue []PluginFunc
 
-func init() {
-	go listenRecvMsgAndApplyPlugin()
-}
-
 // 监听消息，当收到消息时应用插件
 func listenRecvMsgAndApplyPlugin() {
-	for {
-		recvByte := internal.GetRecvMsg()
-		recvMsg := msg.NewRecvMsgObj(recvByte)
-		if recvMsg == nil {
-			return
+	go func() {
+		for {
+			fmt.Println("=======================================")
+			recvByte := internal.GetRecvMsg()
+			recvMsg := msg.NewRecvMsgObj(recvByte)
+			fmt.Println(recvMsg)
+			if recvMsg == nil {
+				continue
+			}
+			go applyPlugin(recvMsg)
 		}
-		go applyPlugin(recvMsg)
-	}
+	}()
 }
 
 // 应用插件
