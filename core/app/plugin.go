@@ -15,10 +15,8 @@ var pluginQueue []PluginFunc
 func listenRecvMsgAndApplyPlugin() {
 	go func() {
 		for {
-			fmt.Println("=======================================")
 			recvByte := internal.GetRecvMsg()
 			recvMsg := msg.NewRecvMsgObj(recvByte)
-			fmt.Println(recvMsg)
 			if recvMsg == nil {
 				continue
 			}
