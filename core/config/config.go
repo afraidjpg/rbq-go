@@ -6,12 +6,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Cfg 配置文件对象
 var Cfg *viper.Viper
 
 func init() {
 	loadConfig()
 }
 
+// 读取配置文件
 func loadConfig() {
 	Cfg = viper.New()
 	Cfg.SetConfigName("config")

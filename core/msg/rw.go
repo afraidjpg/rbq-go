@@ -3,30 +3,12 @@ package msg
 import (
 	"encoding/json"
 	"fmt"
+	"qq-robot-go/core/internal"
 )
-
-var sendChan = make(chan []byte, 1000)
-var recvChan = make(chan *RecvNormalMsg, 1000)
-
+// ApiReq 向 cqhttp 接口发送消息的消息体格式
 type ApiReq struct {
 	Action string      `json:"action"`
 	Params interface{} `json:"params"`
-}
-
-func GetSendMsg() []byte {
-	return <-sendChan
-}
-
-func PushRecvMsg(recv []byte) {
-	recvMsg := NewRecvMsgObj(recv)
-	if recvMsg == nil {
-		return
-	}
-	recvChan <- recvMsg
-}
-
-func GetRecvMsg() *RecvNormalMsg {
-	return <-recvChan
 }
 
 func SendMsg(msgStruct interface{}) error {
@@ -39,7 +21,7 @@ func SendMsg(msgStruct interface{}) error {
 	if err2 != nil {
 		return err2
 	}
-	sendChan <- data
+	internal.PushSendMsg(data)
 	return nil
 }
 
@@ -67,7 +49,7 @@ func getAction(i interface{}) (string, error) {
 	}
 }
 
-// 快速发送群消息
+// SendGroupMsg 快速发送群消息
 func SendGroupMsg(group_id int64, message string) error {
 	m := &GroupMsg{
 		GroupId: group_id,
@@ -77,7 +59,7 @@ func SendGroupMsg(group_id int64, message string) error {
 	return err
 }
 
-// 快速发送私聊消息
+// SendPrivateMsg 快速发送私聊消息
 func SendPrivateMsg(user_id int64, message string) error {
 	m := &PrivateMsg{
 		UserId:  user_id,

@@ -6,6 +6,7 @@ import (
 	"strconv"
 )
 
+// CQImageEncode 将url编码为图片类型的CQ码
 func CQImageEncode(url string) string {
 	// file := ""
 	// _type := ""
@@ -17,7 +18,9 @@ func CQImageEncode(url string) string {
 	return cqFmt
 }
 
-// 解析消息中的 at
+// CQAtDecode 解析消息中的 at
+// 当没有艾特人的时候，这里会返回一个长度为0的数组
+// 当艾特所有人的时候，无论是否再艾特了其他人（如：同时 @所有人 @群友1）都会返回只包含一个元素的数组，且该元素的值固定为0的数组
 func CQAtDecode(message string) []int64 {
 	if message == "" {
 		return []int64{}

@@ -2,7 +2,7 @@ package example
 
 import (
 	"fmt"
-	"qq-robot-go/internal/msg"
+	"qq-robot-go/core/msg"
 )
 
 // 示例插件，作用是讲收到的信息原路原样发回去

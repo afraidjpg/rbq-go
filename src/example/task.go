@@ -1,7 +1,7 @@
 package example
 
 import (
-	"qq-robot-go/internal/msg"
+	"qq-robot-go/core/msg"
 )
 
 type ExampleTask struct {

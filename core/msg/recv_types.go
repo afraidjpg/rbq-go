@@ -8,6 +8,7 @@ import (
 	"github.com/buger/jsonparser"
 )
 
+// RecvNormalMsg 接受道德消息结构体类型
 type RecvNormalMsg struct {
 	Anonymous   string `json:"anonymous"` // 匿名，群属性
 	GroupId     int64  `json:"group_id"`  // 群ID
@@ -39,7 +40,7 @@ func (m *RecvNormalMsg) GetEventType() {
 
 }
 
-// 删除所有CQ码后的纯文本，并且会删除首尾的空格
+// GetPureMsg 删除所有CQ码后的纯文本，并且会删除首尾的空格
 func (m *RecvNormalMsg) GetPureMsg() string {
 	reg := regexp.MustCompile(`\[.*?\]`)
 	pu := reg.ReplaceAllString(m.Message, "")
@@ -47,14 +48,17 @@ func (m *RecvNormalMsg) GetPureMsg() string {
 	return pu
 }
 
+// IsGroup 是否是群消息
 func (m RecvNormalMsg) IsGroup() bool {
 	return m.MessageType == MSG_TYPE_GROUP
 }
 
+// IsPrivate 是否是私聊消息
 func (m RecvNormalMsg) IsPrivate() bool {
 	return m.MessageType == MSG_TYPE_PRIVATE
 }
 
+// IsAtMe 是否艾特了我，特别的，艾特所有人这里会返回false
 func (m RecvNormalMsg) IsAtMe() bool {
 	atList := CQAtDecode(m.Message)
 	for _, qq := range atList {

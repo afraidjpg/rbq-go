@@ -1,7 +1,7 @@
 package main
 
 import (
-	"qq-robot-go/internal/app"
+	"qq-robot-go/core/app"
 	"qq-robot-go/src/example"
 )
 
