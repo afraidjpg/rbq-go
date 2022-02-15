@@ -38,4 +38,9 @@
 2. 新建一个结构体并实现 `CronTask` 接口，在 `Entry` 中实现你的逻辑
 3. 再`main.go`的`loadTask`数组内，加入你的定时任务  
 
-## 提供的插件  
+## 内置的功能 
+
+| 功能 | 文件 | 备注 |
+| --- | --- | --- |
+| 原神-米游社签到 | [miyoushe_sign.go](./src/common/mihoyo/miyoushe_sign.go) | |
+| 涩图-Lolicon API | [lolicon_api.go](./src/common/setu_api/lolicon_api.go) | [官网](https://api.lolicon.app/#/setu) |
