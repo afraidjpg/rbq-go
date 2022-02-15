@@ -6,6 +6,7 @@ import "sync"
 
 // StartApp 启动主程序
 func StartApp() {
+	connectToLeveldb()
 	startListening()
 	listenRecvMsgAndApplyPlugin()
 	startTask()

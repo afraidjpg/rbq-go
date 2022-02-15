@@ -4,6 +4,7 @@ import (
 	"qq-robot-go/core/msg"
 )
 
+// ExampleTask 示例定时任务，简单的每隔五秒向指定qq发送消息，qq需要手动指定一下
 type ExampleTask struct {
 }
 

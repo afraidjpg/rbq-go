@@ -49,3 +49,18 @@ func CQAtDecode(message string) []int64 {
 
 	return atQQList
 }
+
+// CQAtEncode 将@编码为CQ码
+// 如果传入0，则会变为@所有人
+func CQAtEncode(at int64, at2... int64) string {
+	ats := append([]int64{at}, at2...)
+	cqFmt := ""
+	for _, v := range ats {
+		qqStr := strconv.FormatInt(v, 10)
+		if v == 0 {
+			qqStr = "all"
+		}
+		cqFmt += fmt.Sprintf("[CQ:at,qq=%s]", qqStr)
+	}
+	return cqFmt
+}
