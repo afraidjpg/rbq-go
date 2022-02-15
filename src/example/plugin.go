@@ -5,7 +5,7 @@ import (
 	"qq-robot-go/core/msg"
 )
 
-// 示例插件，作用是讲收到的信息原路原样发回去
+// ExamplePlugin 示例插件，作用是讲收到的信息原路原样发回去
 func ExamplePlugin(recv *msg.RecvNormalMsg) {
 	var testSenderQQ int64 = -999 // 你用于测试的发送人qq
 	if recv.Sender.UserId == testSenderQQ && recv.IsPrivate() {

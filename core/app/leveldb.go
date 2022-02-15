@@ -9,12 +9,15 @@ import (
 	"os"
 	"path/filepath"
 	"qq-robot-go/core/config"
+	"sync"
 )
 
 var storage *leveldb.DB
-
+var l = &sync.Mutex{}
 // 连接到leveldb文件
 func connectToLeveldb() {
+	l.Lock()
+	defer l.Unlock()
 	if storage != nil {
 		return
 	}
