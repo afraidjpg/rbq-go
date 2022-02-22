@@ -5,4 +5,19 @@ package msg
 
 import "qq-robot-go/core/config"
 
-var CurLoginQQ = config.Cfg.GetInt64("account.login_qq")
+var curLoginQQ = config.Cfg.GetInt64("account.login_qq")
+func GetCurLoginQQ() int64 {
+	return curLoginQQ
+}
+
+
+const (
+	MSG_TYPE_PRIVATE string = "private"
+	MSG_TYPE_GROUP   string = "group"
+	// ...
+)
+
+const (
+	SUB_TYPE_NORMAL string = "normal"
+	SUB_TYPE_FRIEND string = "friend"
+)

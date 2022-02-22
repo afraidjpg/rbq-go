@@ -30,7 +30,7 @@ func DoMYSGenshinSign(uid int64, cookie string) (bool, error) {
 		return false, ne
 	}
 	if isS {
-		ne := fmt.Errorf("uid：%d 今天已经签到过啦", uid)
+		ne := ErrSigned
 		log.Printf(ne.Error())
 		return false, ne
 	}
@@ -38,7 +38,6 @@ func DoMYSGenshinSign(uid int64, cookie string) (bool, error) {
 	time.Sleep(time.Millisecond * 150) // 这里暂停 150ms 再执行签到，防止被ban
 	succ, err := sign(uid, cookie)     // 执行签到
 	if succ == false || err != nil {
-		fmt.Println(err)
 		ne := fmt.Errorf("uid：%d 签到发生错误, %w", uid, err)
 		log.Printf(ne.Error())
 		return false, ne
@@ -114,7 +113,6 @@ func sign(uid int64, cookie string) (bool, error) {
 		req.Headers.Set("x-rpc-device_id", getUUID(cookie))
 		req.Headers.Set("Content-Type", "text/plain")
 
-		fmt.Println(req.Headers)
 	})
 
 	var ret bool
