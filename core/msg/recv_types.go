@@ -8,7 +8,7 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-// RecvNormalMsg 接受道德消息结构体类型
+// RecvNormalMsg 接受的消息结构体类型
 type RecvNormalMsg struct {
 	Anonymous   string `json:"anonymous"` // 匿名，群属性
 	GroupId     int64  `json:"group_id"`  // 群ID
@@ -62,7 +62,7 @@ func (m RecvNormalMsg) IsPrivate() bool {
 func (m RecvNormalMsg) IsAtMe() bool {
 	atList := CQAtDecode(m.Message)
 	for _, qq := range atList {
-		if qq == CurLoginQQ {
+		if qq == GetCurLoginQQ() {
 			return true
 		}
 	}
@@ -78,17 +78,6 @@ func (m RecvNormalMsg) IsAtAll() bool {
 	return false
 }
 
-const (
-	MSG_TYPE_PRIVATE string = "private"
-	MSG_TYPE_GROUP   string = "group"
-	// ...
-)
-
-const (
-	SUB_TYPE_NORMAL string = "normal"
-	SUB_TYPE_FRIEND string = "friend"
-)
-
 func NewRecvMsgObj(recv []byte) *RecvNormalMsg {
 	postType, err := jsonparser.GetString(recv, "post_type")
 	if err != nil {
@@ -97,13 +86,13 @@ func NewRecvMsgObj(recv []byte) *RecvNormalMsg {
 	}
 
 	if postType == "message" {
-		var recvMeg *RecvNormalMsg
-		err2 := json.Unmarshal(recv, &recvMeg)
+		var recvMsg *RecvNormalMsg
+		err2 := json.Unmarshal(recv, &recvMsg)
 		if err2 != nil {
 			return nil
 		}
 
-		return recvMeg
+		return recvMsg
 	}
 
 	return nil

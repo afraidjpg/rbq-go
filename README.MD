@@ -10,7 +10,7 @@
 2. 下载安装 go-cqhttp  
 3. 启动并配置 go-cqhttp，其中通信方式选择正向websocket
 4. 复制`config.example.yaml`为`config.yaml`
-5. 回到本项目下，执行 go run main.go
+5. 回到本项目下，执行 `go run main.go`
 
 ## 核心功能
 | 功能 | 状态 |
@@ -42,5 +42,5 @@
 
 | 功能 | 文件 | 备注 |
 | --- | --- | --- |
-| 原神-米游社签到 | [miyoushe_sign.go](./src/common/mihoyo/miyoushe_sign.go) | |
-| 涩图-Lolicon API | [lolicon_api.go](./src/common/setu_api/lolicon_api.go) | [官网](https://api.lolicon.app/#/setu) |
+| 原神-米游社签到 | [miyoushe_sign.go](./src/common/mihoyo/miyoushe_sign.go) | 签到接口 header 加密部分借鉴自 [这里](https://github.com/sirodeneko/genshin-sign/blob/master/genshin.py) |
+| 涩图-Lolicon API | [lolicon_api.go](./src/common/setu_api/lolicon_api.go) | [API 官网](https://api.lolicon.app/#/setu) |

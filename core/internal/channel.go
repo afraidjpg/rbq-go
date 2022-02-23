@@ -24,4 +24,3 @@ func PushRecvMsg(recv []byte) {
 func GetRecvMsg() []byte {
 	return <-recvChan
 }
-
