@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"qq-robot-go/core/config"
+	"github.com/alive1944/qq-robot-go/core/config"
 	"sync"
 )
 

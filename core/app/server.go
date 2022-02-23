@@ -5,8 +5,8 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
-	"qq-robot-go/core/config"
-	"qq-robot-go/core/internal"
+	"github.com/alive1944/qq-robot-go/core/config"
+	"github.com/alive1944/qq-robot-go/core/internal"
 )
 
 var addr = fmt.Sprintf("%s:%s", config.Cfg.GetString("websocket.host"), config.Cfg.GetString("websocket.port"))
