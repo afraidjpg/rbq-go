@@ -3,7 +3,7 @@ package msg
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alive1944/qq-robot-go/core/internal"
+	"github.com/afraidjpg/qq-robot-go/core/internal"
 )
 // ApiReq 向 cqhttp 接口发送消息的消息体格式
 type ApiReq struct {

@@ -3,7 +3,7 @@
 // 包含全部消息的类型定义，使用，内部逻辑
 package msg
 
-import "github.com/alive1944/qq-robot-go/core/config"
+import "github.com/afraidjpg/qq-robot-go/core/config"
 
 var curLoginQQ = config.Cfg.GetInt64("account.login_qq")
 func GetCurLoginQQ() int64 {

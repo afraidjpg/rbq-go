@@ -1,4 +1,4 @@
-module github.com/alive1944/qq-robot-go
+module github.com/afraidjpg/qq-robot-go
 
 go 1.16
 

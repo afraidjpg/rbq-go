@@ -2,8 +2,8 @@ package app
 
 import (
 	"fmt"
-	"github.com/alive1944/qq-robot-go/core/internal"
-	"github.com/alive1944/qq-robot-go/core/msg"
+	"github.com/afraidjpg/qq-robot-go/core/internal"
+	"github.com/afraidjpg/qq-robot-go/core/msg"
 )
 
 // PluginFunc 插件的函数定义，所有插件都必须实现该类型
