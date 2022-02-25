@@ -9,7 +9,9 @@
 1. 安装  
 `go get github.com/afraidjpg/qq-robot-go`
 2. 下载 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp/releases)  
-3. 首次执行会创建一份默认配置，或者根据[样例](./config.example.yaml)再项目中创建一份配置文件并命名为`config.yaml`
+3. 启动 `go-cqhttp`
+4. 根据[样例](./config.example.yaml)在项目中创建一份配置文件并命名为`config.yaml`，或者首次执行会创建一份默认配置
+5. 运行你的程序
 
 ## Example
 
