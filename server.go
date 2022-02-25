@@ -1,12 +1,12 @@
-package app
+package qq_robot_go
 
 import (
 	"fmt"
+	"github.com/afraidjpg/qq-robot-go/config"
+	"github.com/afraidjpg/qq-robot-go/internal"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
-	"github.com/afraidjpg/qq-robot-go/core/config"
-	"github.com/afraidjpg/qq-robot-go/core/internal"
 )
 
 var addr = fmt.Sprintf("%s:%s", config.Cfg.GetString("websocket.host"), config.Cfg.GetString("websocket.port"))

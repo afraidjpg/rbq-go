@@ -1,4 +1,4 @@
-package app
+package qq_robot_go
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ type CronTask interface {
 // 定时任务单元
 type taskUint struct {
 	EntryID cron.EntryID // 定时任务ID
-	Task    CronTask // 定时任务本体
+	Task    CronTask     // 定时任务本体
 }
 
 // 定时任务队列

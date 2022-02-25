@@ -1,6 +1,6 @@
 // Package app
 // 程序的核心逻辑
-package app
+package qq_robot_go
 
 import "sync"
 

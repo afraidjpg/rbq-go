@@ -2,7 +2,7 @@ package example
 
 import (
 	"fmt"
-	"github.com/afraidjpg/qq-robot-go/core/msg"
+	"github.com/afraidjpg/qq-robot-go/msg"
 )
 
 // ExamplePlugin 示例插件，作用是讲收到的信息原路原样发回去
