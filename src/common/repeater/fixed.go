@@ -64,7 +64,7 @@ var fixedRepeat = make(map[int64]*Fixed)
 // GetFixed 根据群号获取对应群的复读模型
 func GetFixed(groupID int64) *Fixed {
 	if _, ok := fixedRepeat[groupID]; !ok {
-		fixedRepeat[groupID] = newFixed(0.1)
+		fixedRepeat[groupID] = newFixed(0.1) // 默认的复读概率模型为 0.1
 	}
 
 	return fixedRepeat[groupID]
@@ -72,6 +72,6 @@ func GetFixed(groupID int64) *Fixed {
 
 func newFixed(prop float64) *Fixed {
 	return &Fixed{
-		prop: prop, // 默认0.1%概率复读
+		prop: prop,
 	}
 }

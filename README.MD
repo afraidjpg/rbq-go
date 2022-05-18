@@ -1,4 +1,8 @@
-# 基于go-cqhttp的机器人脚手架  
+# 基于go-cqhttp的机器人脚手架 
+
+
+![](https://img.shields.io/github/go-mod/go-version/afraidjpg/qq-robot-go)
+[![](https://img.shields.io/badge/go--cqhttp-v1.0.0-orange)](https://github.com/Mrs4s/go-cqhttp)
 
 目前只接受群聊和私聊消息  
 项目的目的在于做一个可扩展/维护的qq机器人插件框架  

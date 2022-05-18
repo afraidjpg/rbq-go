@@ -2,14 +2,16 @@ package qq_robot_go_test
 
 import (
 	"bytes"
-	app "github.com/afraidjpg/qq-robot-go"
-	"github.com/spf13/viper"
 	"testing"
+
+	app "github.com/afraidjpg/qq-robot-go"
+	"github.com/afraidjpg/qq-robot-go/src/plugin/setu"
+	"github.com/spf13/viper"
 )
 
 func TestRunServer(t *testing.T) {
 	loadPlugin := []app.PluginFunc{
-		//setu.Entry,
+		setu.Entry,
 		//genshin_sign.Entry,
 	}
 	loadTask := []app.CronTask{}

@@ -27,10 +27,14 @@ func loadConfig() {
 
 	if errors.Is(err, os.ErrNotExist) {
 		createDefaultConfig()
+		loadConfig()
 	}else if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
+
+	checkConfig()
 }
+
 
 
 func createDefaultConfig() {
@@ -42,8 +46,19 @@ websocket:  # websocket正向配置接口，根据你的cqhttp-go的websocket端
     host: 127.0.0.1
     port: 6700`)
 
-	Cfg = viper.New()
+	if Cfg == nil {
+		Cfg = viper.New()
+	}
 	Cfg.SetConfigType("yaml")
 	Cfg.ReadConfig(bytes.NewBuffer(c))
-	Cfg.WriteConfigAs("config.yaml")
+	err := Cfg.WriteConfigAs("config.yaml")
+	if err != nil {
+		panic(fmt.Errorf("Fatal error: %s \n", err.Error()))
+	}
+}
+
+func checkConfig() {
+	if Cfg.GetInt64("account.login_qq") <= 0 {
+		panic(fmt.Errorf("Config error: account.login_qq\n"))
+	}
 }
