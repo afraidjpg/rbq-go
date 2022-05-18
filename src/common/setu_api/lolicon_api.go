@@ -2,9 +2,7 @@ package setu_api
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"strings"
+	"github.com/afraidjpg/qq-robot-go/util"
 )
 
 // LoliconApiResp LOLicon API 返回的数据结构定义
@@ -51,24 +49,17 @@ func FetchLoliconApi(tag []string, r18, num int) (*LoliconApiResp, error) {
 
 	j, _ := json.Marshal(postData)
 
-	resp, err := http.Post(
+	resp, err := util.HttpPost(
 		"https://api.lolicon.app/setu/v2",
 		"application/json",
-		strings.NewReader(string(j)),
+		string(j),
 	)
-
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
-	body, err2 := ioutil.ReadAll(resp.Body)
-	if err2 != nil {
-		return nil, err2
-	}
 
 	var respData *LoliconApiResp
-	err3 := json.Unmarshal(body, &respData)
+	err3 := json.Unmarshal(resp, &respData)
 	if err3 != nil {
 		return nil, err3
 	}

@@ -106,10 +106,12 @@ func main() {
 
 ```
 
-## 已内置的功能 
+## 内置功能列表 
+功能列表内的部分只提供了方法实现，不能直接作为插件使用，需要自己编写插件将功能加入
 
 | 功能 | 文件 | 备注 |
 | --- | --- | --- |
-| 原神-米游社签到 | [miyoushe_sign.go](./src/common/mihoyo/miyoushe_sign.go) | 签到接口 header 加密部分借鉴自 [这里](https://github.com/sirodeneko/genshin-sign/blob/master/genshin.py) |
-| 涩图-Lolicon API | [lolicon_api.go](./src/common/setu_api/lolicon_api.go) | [API 官网](https://api.lolicon.app/#/setu) |
+| 原神-米游社签到 | [miyoushe_sign.go](./src/common/mihoyo/miyoushe_sign.go) | 签到接口 header 加密部分借参考自 [这里](https://github.com/sirodeneko/genshin-sign/blob/master/genshin.py) |
+| 涩图-Lolicon API | [lolicon_api.go](./src/common/setu_api/lolicon_api.go) | Lolicon API。[网站连接](https://api.lolicon.app/#/setu) |
 | 复读机 | [fixed.go](./src/common/repeater/fixed.go) | 固定几率的复读机，初始概率为0.1% |
+| 以图搜动漫 | [trace_moe.go](src/common/ocr/trace_moe.go) | 根据图片搜索动漫信息。[网站连接](https://soruly.github.io/trace.moe-api/#/) |

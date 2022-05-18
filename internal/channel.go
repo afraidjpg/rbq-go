@@ -1,5 +1,5 @@
 // Package internal
-// 不对core外暴露的方法
+// 不对外暴露的方法
 package internal
 
 var sendChan = make(chan []byte, 1000)
