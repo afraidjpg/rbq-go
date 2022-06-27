@@ -4,9 +4,8 @@
 ![](https://img.shields.io/github/go-mod/go-version/afraidjpg/qq-robot-go)
 [![](https://img.shields.io/badge/go--cqhttp-v1.0.0-orange)](https://github.com/Mrs4s/go-cqhttp)
 
-目前只接受群聊和私聊消息  
-项目的目的在于做一个可扩展/维护的qq机器人插件框架  
-其他的API和EVENT对接？，在🦌上了，没事的时候慢慢做
+1. 个人学习项目，目的在于简化对机器人的开发
+2. 目前还只接受群聊和私聊的消息，这俩比较常用，其他的类型？在🦌上了，没事的时候慢慢做
 
 ## 使用方法  
 

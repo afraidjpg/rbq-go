@@ -13,4 +13,21 @@ type GroupMsg struct {
 	AutoEscape bool   `json:"auto_escape"`
 }
 
-// type
+//
+//
+//type Sender struct {
+//	to int64
+//	message string
+//}
+//
+//func (s *Sender) SetTo(to int64)  {
+//	s.to = to
+//}
+//
+//func (s Sender) SetMessage(message string) {
+//	s.message = message
+//}
+//
+//func (s Sender) Reply(message string) {
+//	s.SetMessage(message)
+//}

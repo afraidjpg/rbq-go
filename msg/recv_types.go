@@ -78,6 +78,7 @@ func (m RecvNormalMsg) IsAtAll() bool {
 	return false
 }
 
+
 func NewRecvMsgObj(recv []byte) *RecvNormalMsg {
 	postType, err := jsonparser.GetString(recv, "post_type")
 	if err != nil {

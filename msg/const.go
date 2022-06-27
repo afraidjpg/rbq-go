@@ -23,3 +23,7 @@ const (
 	SUB_TYPE_NORMAL string = "normal"
 	SUB_TYPE_FRIEND string = "friend"
 )
+
+//const (
+//	CQ_IMAGE_ID int64 = 40000
+//)

@@ -18,3 +18,4 @@ func TestFetchTraceApi(t *testing.T) {
 	b, _ := json.Marshal(resp.Result)
 	fmt.Println(string(b))
 }
+
