@@ -3,7 +3,7 @@ package ocr
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/afraidjpg/qq-robot-go/util"
+	"github.com/afraidjpg/qq-robot-go/old/util"
 )
 
 /*
@@ -15,7 +15,7 @@ type TraceApiResp struct {
 	FrameCount int64  `json:"frameCount"`
 	Error      string `json:"error"`
 	Result     []struct {
-		Anilist    int64    `json:"anilist"` // 动画ID
+		Anilist    int64    `json:"anilist"`  // 动画ID
 		Filename   string   `json:"filename"` // 搜索到的源视频文件名
 		Episode    *float64 `json:"episode"`
 		From       float64  `json:"from"`

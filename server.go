@@ -2,53 +2,50 @@ package qq_robot_go
 
 import (
 	"fmt"
-	"github.com/afraidjpg/qq-robot-go/config"
-	"github.com/afraidjpg/qq-robot-go/internal"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
 )
 
-var addr = fmt.Sprintf("%s:%s", config.Cfg.GetString("websocket.host"), config.Cfg.GetString("websocket.port"))
-var c *websocket.Conn
+var conn *websocket.Conn
 
-// 连接到 websocket
-func connectToWS() {
-	u := url.URL{Scheme: "ws", Host: addr, Path: ""}
+func listenCQHTTP(h string, p string) {
+	conn = connectToWS(h, p)
+	go recvDataFromCQHTTP()
+}
+
+func connectToWS(h string, p string) *websocket.Conn {
+	host := fmt.Sprintf("%s:%s", h, p)
+	u := url.URL{Scheme: "ws", Host: host, Path: ""}
 
 	cc, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	c = cc
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
 	fmt.Printf("websocket server 已连接：%s\n", u.String())
+	return cc
 }
 
-// 启动链接并收发消息
-func startListening() {
-	connectToWS()
-	go reciveListening()
-	go writeListening()
-}
+var recvChan = make(chan []byte, 100)
 
-// 接收消息监听
-func reciveListening() {
-	go func() {
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				continue
-			}
-			go internal.PushRecvMsg(message)
-		}
-	}()
-}
-
-// 发送消息监听
-func writeListening() {
+func recvDataFromCQHTTP() {
 	for {
-		sendMsg := internal.GetSendMsg()
-		log.Println(string(sendMsg))
-		c.WriteMessage(websocket.TextMessage, sendMsg)
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("read:", err)
+			return
+		}
+		recvChan <- message
+	}
+}
+func getDataFromRecvChan() []byte {
+	return <-recvChan
+}
+
+func sendDataToCQHTTP(data []byte) {
+	err := conn.WriteMessage(websocket.TextMessage, data)
+	if err != nil {
+		log.Println("write:", err)
+		return
 	}
 }

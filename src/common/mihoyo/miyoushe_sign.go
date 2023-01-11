@@ -30,7 +30,7 @@ func DoMYSGenshinSign(uid int64, cookie string) (bool, error) {
 		return false, ne
 	}
 	if isS {
-		ne := ErrSigned
+		ne := fmt.Errorf("uid：%d 已经签到过了", uid)
 		log.Printf(ne.Error())
 		return false, ne
 	}
@@ -154,6 +154,7 @@ func getDS() string {
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
 // 生成长度为 n 随机的字符串
 func randSeq(n int) string {
 	b := make([]rune, n)

@@ -1,7 +1,7 @@
 # 基于go-cqhttp的机器人脚手架 
 
 
-![](https://img.shields.io/github/go-mod/go-version/afraidjpg/qq-robot-go)
+![](https://img.shields.io/badge/go-v1.18%2B-blue)
 [![](https://img.shields.io/badge/go--cqhttp-v1.0.0-orange)](https://github.com/Mrs4s/go-cqhttp)
 
 1. 个人学习项目，目的在于简化对机器人的开发

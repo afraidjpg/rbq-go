@@ -1,126 +1,219 @@
 package qq_robot_go
 
 import (
-	"fmt"
-	"github.com/afraidjpg/qq-robot-go/internal"
-	"github.com/afraidjpg/qq-robot-go/msg"
-	"github.com/afraidjpg/qq-robot-go/util"
-	"time"
+	"log"
+	"reflect"
+	"runtime"
 )
 
+type PluginFunc func(*Context)
 
-
-
-
+// PluginOption 插件选项
+// 如果设置在组上，则组内所有插件都会继承该选项
+// 对于 slice类型，会从头部加入新的元素
+// 比如针对组设置了 FilterFunc{f1, f2, f3}
+// 针对插件设置了 FilterFunc{f4, f5, f6}，则插件的 FilterFunc 的执行顺序为 f1->f2->f3->f4->f5->f6
+// 对于非 slice/map/array 类型，除非插件指定值，否则会直接使用组设置的值
+// 对组进行设置时会被忽略的值：Name
 type PluginOption struct {
-	WhiteList []string  // 允许的qq号
-	Scope     []string // 可选值 group private, 空默认全部
-	//AllowStranger bool    // 是否允许陌生人, 默认为 false 不允许
+	Name        string
+	FilterFunc  []func(ctx *Context) bool   // 消息过滤器，返回 false 则本条消息不执行插件
+	Middleware  []func(ctx *Context) bool   // TODO 中间件
+	RecoverFunc func(ctx *Context, err any) // 插件发生 panic 时的处理方法，默认控制台打印信息
+	IsTurnOff   *bool                       // 是否初始状态关闭插件，默认false，即不关闭
 }
 
-func (po *PluginOption) AddWhiteList(num int64) {
-	po.AddWhiteListBatch([]int64{num})
+func (o *PluginOption) SetName(n string) {
+	o.Name = n
 }
 
-func (po *PluginOption) AddWhiteListBatch(nums []int64) {
-	for _, no := range nums {
-		if util.InArray(no, po.WhiteList) >= 0 {
-			continue
+func (o *PluginOption) AddFilterFunc(f func(ctx *Context) bool) {
+	if f == nil {
+		return
+	}
+	o.FilterFunc = append(o.FilterFunc, f)
+}
+
+func (o *PluginOption) SetRecoverFunc(f func(ctx *Context, err any)) {
+	o.RecoverFunc = f
+}
+
+func (o *PluginOption) SetIsTurnOff(b bool) {
+	o.IsTurnOff = &b
+}
+
+func (o *PluginOption) withDefault(f PluginFunc) {
+	if o.Name == "" && f != nil {
+		o.Name = o.getFuncName(f)
+	}
+	if o.FilterFunc == nil || len(o.FilterFunc) == 0 {
+		o.FilterFunc = []func(ctx *Context) bool{}
+	}
+	if o.Middleware == nil || len(o.Middleware) == 0 {
+		o.Middleware = []func(ctx *Context) bool{}
+	}
+	if o.RecoverFunc == nil {
+		o.RecoverFunc = func(ctx *Context, err any) {
+			log.Printf("插件:%s 发生错误: %s\n", o.Name, err)
+		}
+	}
+	if o.IsTurnOff == nil {
+		o.SetIsTurnOff(false)
+	}
+}
+
+func (o PluginOption) getFuncName(f PluginFunc) string {
+	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+}
+
+// copy 复制一个 PluginOption，以防外部篡改
+func (o *PluginOption) copy() *PluginOption {
+	newo := &PluginOption{}
+	*newo = *o
+	return newo
+}
+
+// 合并/覆盖应用另一个设置的值, 除了 Name
+func (o *PluginOption) coverValue(opt *PluginOption) {
+	// 把 opt.FilterFunc 插入到 o.FilterFunc 的头部
+	if len(opt.FilterFunc) > 0 {
+		o.FilterFunc = append(opt.FilterFunc, o.FilterFunc...)
+	}
+
+	if len(opt.Middleware) > 0 {
+		o.Middleware = append(opt.Middleware, o.Middleware...)
+	}
+
+	if o.RecoverFunc == nil {
+		o.RecoverFunc = opt.RecoverFunc
+	}
+
+	if o.IsTurnOff == nil {
+		o.IsTurnOff = opt.IsTurnOff
+	}
+	// 设置默认值
+	opt.withDefault(nil)
+}
+
+func DefaultPluginOption() *PluginOption {
+	o := &PluginOption{}
+	return o
+}
+
+func getPluginLoader() *pluginLoader {
+	return pl
+}
+
+var pl = &pluginLoader{group: make(map[string]*PluginGroup)}
+
+type pluginLoader struct {
+	group map[string]*PluginGroup
+	speg  string // specified group 是有已经进入指定组的标志
+}
+
+func (pl *pluginLoader) getGroup(name string) *PluginGroup {
+	if _, ok := pl.group[name]; ok {
+		return pl.group[name]
+	}
+	return nil
+}
+
+func (pl *pluginLoader) WithGroup(name string, opt *PluginOption, f func(*pluginLoader)) {
+	if pl.speg != "" {
+		panic("不允许循环嵌套 WithGroup")
+	}
+	pl.speg = name
+
+	pg := pl.getGroup(name)
+	if pg == nil {
+		pg = &PluginGroup{
+			name: name,
+		}
+		pg.SetOption(opt)
+		pl.group[name] = pg
+	}
+	f(pl)
+	pl.speg = ""
+}
+
+// BIndPlugin 添加插件,如果在 WithGroup 中调用，则添加到 WithGroup 指定的组中
+func (pl *pluginLoader) BIndPlugin(f PluginFunc, opt *PluginOption) {
+	if pl.speg == "" {
+		pl.WithGroup("default", nil, func(pld *pluginLoader) {
+			pld.BIndPlugin(f, opt)
+		})
+	}
+	p := &plugin{}
+	if opt == nil {
+		opt = &PluginOption{}
+		opt.Name = opt.getFuncName(f)
+	}
+	opt.coverValue(pl.group[pl.speg].opt)
+	p.bindPlugin(f, opt)
+	pl.group[pl.speg].checkExist(opt.Name) // 如果同组出现两个同名插件，会 panic
+	pl.group[pl.speg].plugins = append(pl.group[pl.speg].plugins, p)
+}
+
+type PluginGroup struct {
+	plugins []*plugin
+	name    string        // 组名
+	opt     *PluginOption // 对组内所有插件作用的全局设置
+}
+
+func (pg *PluginGroup) SetOption(opt *PluginOption) *PluginGroup {
+	if opt == nil {
+		opt = DefaultPluginOption()
+	}
+	opt.withDefault(nil)
+
+	pg.opt = opt.copy()
+	return pg
+}
+
+func (pg *PluginGroup) checkExist(name string) {
+	for _, p := range pg.plugins {
+		if p.Name == name {
+			panic("插件名重复:" + name)
 		}
 	}
 }
 
-func (po *PluginOption) RemoveWhiteList(num int64) {
-	po.RemoveWhiteListBatch([]int64{num})
+type plugin struct {
+	function PluginFunc
+	*PluginOption
 }
 
-func (po *PluginOption) RemoveWhiteListBatch(nums []int64) {
-	for _, no := range nums {
-		if idx := util.InArray(no, po.WhiteList); idx >= 0 {
-			po.WhiteList[idx] = po.WhiteList[len(po.WhiteList)-1]
-			po.WhiteList = po.WhiteList[:len(po.WhiteList)-1]
-		}
-	}
+func (p *plugin) bindPlugin(f PluginFunc, opt *PluginOption) {
+	p.function = f
+	p.PluginOption = opt.copy()
 }
 
-
-
-
-// PluginFunc 插件的函数定义，所有插件都必须实现该类型
-type PluginFunc func(*msg.RecvNormalMsg, *PluginOption)
-
-type PluginUnitInterface interface {
-	Init() (*PluginOption, error)
-	Entry(*msg.RecvNormalMsg, *PluginOption)
-}
-
-type pluginUnit struct {
-	ID int64
-	Func PluginFunc
-	Opt *PluginOption
-}
-
-var pluginQueue []*pluginUnit
-
-// 监听消息，当收到消息时应用插件
-func listenRecvMsgAndApplyPlugin() {
-	go func() {
-		for {
-			recvByte := internal.GetRecvMsg()
-			recvMsg := msg.NewRecvMsgObj(recvByte)
-			if recvMsg == nil {
-				continue
-			}
-			go applyPlugin(recvMsg)
+func (p *plugin) run(ctx *Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			p.RecoverFunc(ctx, err)
 		}
 	}()
+
+	for _, f := range p.FilterFunc {
+		if f == nil || f(ctx) == false {
+			return
+		}
+	}
+	p.function(ctx)
 }
 
-// 应用插件
-func applyPlugin(recv *msg.RecvNormalMsg) {
-	for _, f := range pluginQueue {
-		go func(pu *pluginUnit) {
-			if pu.Opt.Scope != nil && util.InArray(recv.Sender.UserId, pu.Opt.WhiteList) < 0 {
-				return
+func startupPlugins() {
+	go func() {
+		for {
+			recvMsg := parseMessageBytes(getDataFromRecvChan())
+			for _, group := range getPluginLoader().group {
+				for _, p := range group.plugins {
+					ctx := newContext()
+					ctx.msg = recvMsg
+					go p.run(ctx)
+				}
 			}
-			if pu.Opt.Scope != nil && util.InArray(recv.MessageType, pu.Opt.Scope) < 0 {
-				return
-			}
-
-			pu.Func(recv, pu.Opt)
-		}(f)
-	}
-}
-
-
-// AddPlugin 将插件放入队列
-func AddPlugin(ps []PluginUnitInterface) {
-	succ := 0
-	for _, p := range ps {
-		opt, err:= p.Init()
-		if err != nil {
-			fmt.Println("插件加载失败")
-			continue
 		}
-		pUint := &pluginUnit{
-			ID:   time.Now().UnixNano(),
-			Func: p.Entry,
-			Opt:  opt,
-		}
-		if pUint.Opt == nil {
-			pUint.Opt = getDefaultOption()
-		}
-		pluginQueue = append(pluginQueue, pUint)
-		succ++
-	}
-
-	fmt.Printf("插件加载成功，共加载%d个插件\n", succ)
-}
-
-func getDefaultOption() *PluginOption {
-	return &PluginOption{
-		WhiteList: nil,
-		Scope:     nil,
-		//AllowStranger: true,
-	}
+	}()
 }
