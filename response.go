@@ -21,10 +21,6 @@ type GroupMsg struct {
 	AutoEscape bool   `json:"auto_escape"`
 }
 
-type Response struct {
-	req *ApiReq
-}
-
 func respMessage(userId, groupId int64, message string, autoEscape bool) {
 	var req ApiReq
 	if groupId != 0 {

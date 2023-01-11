@@ -4,9 +4,11 @@ import (
 	"log"
 	"reflect"
 	"runtime"
+	"strings"
 )
 
 type PluginFunc func(*Context)
+type PluginFilterFunc func(ctx *Context) bool
 
 // PluginOption 插件选项
 // 如果设置在组上，则组内所有插件都会继承该选项
@@ -17,10 +19,10 @@ type PluginFunc func(*Context)
 // 对组进行设置时会被忽略的值：Name
 type PluginOption struct {
 	Name        string
-	FilterFunc  []func(ctx *Context) bool   // 消息过滤器，返回 false 则本条消息不执行插件
-	Middleware  []func(ctx *Context) bool   // TODO 中间件
+	FilterFunc  []PluginFilterFunc          // 消息过滤器，返回 false 则本条消息不执行插件
+	Middleware  []func(ctx *Context)        // TODO 中间件
 	RecoverFunc func(ctx *Context, err any) // 插件发生 panic 时的处理方法，默认控制台打印信息
-	IsTurnOff   *bool                       // 是否初始状态关闭插件，默认false，即不关闭
+	IsTurnOff   *bool                       // TODO 是否初始状态关闭插件，默认false，即不关闭
 }
 
 func (o *PluginOption) SetName(n string) {
@@ -46,15 +48,19 @@ func (o *PluginOption) withDefault(f PluginFunc) {
 	if o.Name == "" && f != nil {
 		o.Name = o.getFuncName(f)
 	}
-	if o.FilterFunc == nil || len(o.FilterFunc) == 0 {
-		o.FilterFunc = []func(ctx *Context) bool{}
-	}
-	if o.Middleware == nil || len(o.Middleware) == 0 {
-		o.Middleware = []func(ctx *Context) bool{}
-	}
+
 	if o.RecoverFunc == nil {
 		o.RecoverFunc = func(ctx *Context, err any) {
-			log.Printf("插件:%s 发生错误: %s\n", o.Name, err)
+			log.Printf("插件:%s 发生错误: %s，调用栈：\n", o.Name, err)
+			// 获取panic发生的调佣站并打印
+			for i := 1; ; i++ {
+				_, file, line, ok := runtime.Caller(i)
+				if !ok {
+					break
+				}
+				log.Printf("%s:%d\n", file, line)
+			}
+			log.Println("===============")
 		}
 	}
 	if o.IsTurnOff == nil {
@@ -63,7 +69,11 @@ func (o *PluginOption) withDefault(f PluginFunc) {
 }
 
 func (o PluginOption) getFuncName(f PluginFunc) string {
-	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+	fn := runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+	if strings.Contains(fn, ".") {
+		fn = fn[strings.LastIndex(fn, ".")+1:]
+	}
+	return fn
 }
 
 // copy 复制一个 PluginOption，以防外部篡改
@@ -142,12 +152,14 @@ func (pl *pluginLoader) BIndPlugin(f PluginFunc, opt *PluginOption) {
 		pl.WithGroup("default", nil, func(pld *pluginLoader) {
 			pld.BIndPlugin(f, opt)
 		})
+		return
 	}
 	p := &plugin{}
 	if opt == nil {
 		opt = &PluginOption{}
 		opt.Name = opt.getFuncName(f)
 	}
+
 	opt.coverValue(pl.group[pl.speg].opt)
 	p.bindPlugin(f, opt)
 	pl.group[pl.speg].checkExist(opt.Name) // 如果同组出现两个同名插件，会 panic
@@ -207,6 +219,9 @@ func startupPlugins() {
 	go func() {
 		for {
 			recvMsg := parseMessageBytes(getDataFromRecvChan())
+			if recvMsg == nil {
+				continue
+			}
 			for _, group := range getPluginLoader().group {
 				for _, p := range group.plugins {
 					ctx := newContext()

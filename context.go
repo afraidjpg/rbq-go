@@ -15,9 +15,27 @@ func (c Context) IsGroup() bool {
 	return c.msg.GroupId > 0
 }
 
-// AddMessage 添加回复的消息
-// usage：ctx.AddMessage("hello world").AddMessage("hello world2").Reply()
-func (c *Context) AddMessage(m string) *Context {
+// GetSender 获取发送者的QQ
+func (c *Context) GetSender() int64 {
+	return c.msg.Sender.UserId
+}
+
+// GetGroupNo 获取群号
+func (c *Context) GetGroupNo() int64 {
+	if c.IsGroup() {
+		return c.msg.GroupId
+	}
+	return int64(0)
+}
+
+// GetRecvMessage 获取接收到的消息
+func (c *Context) GetRecvMessage() string {
+	return c.msg.Message
+}
+
+// JoinMessage 添加回复的消息
+// usage：ctx.JoinMessage("hello world").JoinMessage("hello world2").Reply()
+func (c *Context) JoinMessage(m string) *Context {
 	c.replyData = append(c.replyData, m)
 	return c
 }
@@ -45,5 +63,6 @@ func (c *Context) send(userID, groupID int64) {
 	if rep == "" {
 		return
 	}
-	//buildAndSendMsg(userID, groupID, rep, false)
+
+	respMessage(userID, groupID, rep, false)
 }
