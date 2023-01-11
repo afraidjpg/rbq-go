@@ -30,7 +30,7 @@ func DoMYSGenshinSign(uid int64, cookie string) (bool, error) {
 		return false, ne
 	}
 	if isS {
-		ne := ErrSigned
+		ne := fmt.Errorf("uid：%d 已经签到过了", uid)
 		log.Printf(ne.Error())
 		return false, ne
 	}
@@ -112,7 +112,6 @@ func sign(uid int64, cookie string) (bool, error) {
 		req.Headers.Set("x-rpc-app_version", "2.3.0")
 		req.Headers.Set("x-rpc-device_id", getUUID(cookie))
 		req.Headers.Set("Content-Type", "text/plain")
-
 	})
 
 	var ret bool
@@ -139,13 +138,13 @@ func sign(uid int64, cookie string) (bool, error) {
 	return ret, errS
 }
 
-// getUUID 生成米哈游接口 header 所需要的 x-rpc-device_id
+// 生成米哈游接口 header 所需要的 x-rpc-device_id
 func getUUID(cookie string) string {
 	u := uuid.NewMD5(uuid.NameSpaceURL, []byte(cookie))
 	return strings.ReplaceAll(u.String(), "-", "")
 }
 
-// getDS 生成米哈游接口 header 所需要的 DS
+// 生成米哈游接口 header 所需要的 DS
 func getDS() string {
 	n := "h8w582wxwgqvahcdkpvdhbh2w9casgfl"
 	t := time.Now().Unix()
@@ -155,7 +154,8 @@ func getDS() string {
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-// randSeq 生成长度为 n 随机的字符串
+
+// 生成长度为 n 随机的字符串
 func randSeq(n int) string {
 	b := make([]rune, n)
 	for i := range b {
@@ -164,7 +164,7 @@ func randSeq(n int) string {
 	return string(b)
 }
 
-// md5Str 获取 str 的md5值
+// 获取 str 的md5值
 func md5Str(str string) string {
 	h := md5.New()
 	h.Write([]byte(str))

@@ -2,14 +2,15 @@ package example
 
 import (
 	"fmt"
-	"github.com/alive1944/qq-robot-go/core/msg"
+	"github.com/afraidjpg/qq-robot-go/msg"
+	msg2 "github.com/afraidjpg/qq-robot-go/old/msg"
 )
 
 // ExamplePlugin 示例插件，作用是讲收到的信息原路原样发回去
-func ExamplePlugin(recv *msg.RecvNormalMsg) {
+func ExamplePlugin(recv *msg2.RecvNormalMsg) {
 	var testSenderQQ int64 = -999 // 你用于测试的发送人qq
 	if recv.Sender.UserId == testSenderQQ && recv.IsPrivate() {
-		sendMsg := &msg.PrivateMsg{
+		sendMsg := &msg2.PrivateMsg{
 			UserId:     testSenderQQ,
 			GroupId:    0,
 			Message:    recv.Message,

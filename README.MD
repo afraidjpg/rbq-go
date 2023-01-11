@@ -1,46 +1,66 @@
-# 基于go-cqhttp的机器人脚手架  
+# 基于go-cqhttp的机器人插件框架 
 
-目前只接受群聊和私聊消息  
-项目的目的在于做一个可扩展/维护的qq机器人插件框架  
-其他的API和EVENT对接？，在🦌上了，没事的时候慢慢做
+
+![](https://img.shields.io/badge/go-v1.18%2B-blue)
+[![](https://img.shields.io/badge/go--cqhttp-v1.0.0-orange)](https://github.com/Mrs4s/go-cqhttp)
+
+1. 个人学习项目，目的在于简化在开发插件的过程中，与go-cqhttp的对接过程，使得开发者可以更加专注于插件本身的开发，而不是在对接上花费过多的时间。
+2. 目前还只接受群聊和私聊的消息，这俩比较常用，其他的类型？在🦌上了，没事的时候慢慢做
+3. 由于使用到了泛型，请使用`gov1.18+`
 
 ## 使用方法  
 
-1. 安装 go 1.16（更低版本未测试，理论上支持1.11以上）
-2. 下载安装 go-cqhttp  
-3. 启动并配置 go-cqhttp，其中通信方式选择正向websocket
-4. 复制`config.example.yaml`为`config.yaml`
-5. 回到本项目下，执行 `go run main.go`
+1. 安装  
+`go get github.com/afraidjpg/qq-robot-go`
+2. 下载 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp/releases)  
+3. 启动 `go-cqhttp` 并使用选择正向websocket连接
+5. 编写插件并运行你的程序
 
-## 核心功能
-| 功能 | 状态 |
-| --- | --- |
-| 定时任务 | done |
-| 机器人插件支持 | done |
-| 私聊消息 | done |
-| 群消息 | done |
-| CQ码 | doing |
+## Example
+
+示例代码 [点击这里](./example)
+
+## 插件开发
+
+### 最简单插件示例
+```go
+import app "github.com/afraidjpg/qq-robot-go"
+
+// YourPlugin 这是你的插件本体
+func YourPlugin(ctx *app.Context) {
+	// 你的逻辑...
+	ctx.Reply("test") // 发送 "test"
+	
+	ctx.JoinMessage("boo") // 添加消息但不立刻发送
+	ctx.JoinMessage("bar")
+	ctx.Reply() // 发送 "boobar"
+
+	ctx.JoinMessage("hello") // 添加消息但不立刻发送
+    ctx.JoinMessage(" ")
+    ctx.Reply("world") // 发送 "hello world"
+}
+
+// main 方法
+func main() {
+    bot := app.NewApp()
+    pld := bot.GetPluginLoader()
+    // 添加单个插件
+    pld.BIndPlugin(reply, nil)
+
+    // 添加插件到插件组
+	pld.WithGroup("gp", nil, func() {
+		// 在组 "gp" 中添加插件
+        pldBIndPlugin(reply, nil)
+    })
+    bot.Run("")
+}
+```
+
+### 插件的选项
+
+```go
 
 
 
+```
 
-
-## 新增插件  
-
-1. 在`src/plugin`下新建你的插件文件夹  
-2. 新建一个方法，其定义为`func(*msg.RecvNormalMsg)`，然后在其中实现你的逻辑
-3. 再`main.go`的`loadPlugin`数组内，加入你的方法  
-
-
-## 新增定时任务
-
-1. 在`src/task`下新建你的定时器项目  
-2. 新建一个结构体并实现 `CronTask` 接口，在 `Entry` 中实现你的逻辑
-3. 再`main.go`的`loadTask`数组内，加入你的定时任务  
-
-## 内置的功能 
-
-| 功能 | 文件 | 备注 |
-| --- | --- | --- |
-| 原神-米游社签到 | [miyoushe_sign.go](./src/common/mihoyo/miyoushe_sign.go) | 签到接口 header 加密部分借鉴自 [这里](https://github.com/sirodeneko/genshin-sign/blob/master/genshin.py) |
-| 涩图-Lolicon API | [lolicon_api.go](./src/common/setu_api/lolicon_api.go) | [API 官网](https://api.lolicon.app/#/setu) |
