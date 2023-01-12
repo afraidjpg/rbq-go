@@ -66,3 +66,9 @@ func (c *Context) send(userID, groupID int64) {
 
 	respMessage(userID, groupID, rep, false)
 }
+
+func (c *Context) copy() *Context {
+	nctx := newContext()
+	*nctx = *c
+	return nctx
+}

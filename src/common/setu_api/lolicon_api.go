@@ -29,6 +29,13 @@ type LoliconApiResp struct {
 		} `json:"urls"`
 	} `json:"data"`
 }
+type LoliconR18Level int
+
+const (
+	R18Except  LoliconR18Level = iota // 不包含R18
+	R18Only                           // 只包含R18
+	R18Contain                        // 混合模式，可能是R18，也可能不是
+)
 
 // FetchLoliconApi 从 lolicon api 获取涩图
 //

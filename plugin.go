@@ -1,6 +1,8 @@
 package qq_robot_go
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"reflect"
 	"runtime"
@@ -9,6 +11,22 @@ import (
 
 type PluginFunc func(*Context)
 type PluginFilterFunc func(ctx *Context) bool
+
+type PluginGroupOption struct {
+	GPluginOpt *PluginOption // 组内插件的默认设置，详情见 PluginOption 的注释说明
+}
+
+func (pgo *PluginGroupOption) copy() *PluginGroupOption {
+	newo := &PluginGroupOption{}
+	*newo = *pgo
+	return newo
+}
+
+func DefaultPluginGroupOption() *PluginGroupOption {
+	o := &PluginGroupOption{}
+	o.GPluginOpt = DefaultPluginOption()
+	return o
+}
 
 // PluginOption 插件选项
 // 如果设置在组上，则组内所有插件都会继承该选项
@@ -51,16 +69,15 @@ func (o *PluginOption) withDefault(f PluginFunc) {
 
 	if o.RecoverFunc == nil {
 		o.RecoverFunc = func(ctx *Context, err any) {
-			log.Printf("插件:%s 发生错误: %s，调用栈：\n", o.Name, err)
+			log.Printf("\n插件:%s 发生错误: %s，调用栈：\n", o.Name, err)
 			// 获取panic发生的调佣站并打印
 			for i := 1; ; i++ {
 				_, file, line, ok := runtime.Caller(i)
 				if !ok {
 					break
 				}
-				log.Printf("%s:%d\n", file, line)
+				log.Printf("%s:%d\n\n", file, line)
 			}
-			log.Println("===============")
 		}
 	}
 	if o.IsTurnOff == nil {
@@ -110,15 +127,20 @@ func DefaultPluginOption() *PluginOption {
 	return o
 }
 
-func getPluginLoader() *pluginLoader {
-	return pl
+func getPluginLoader() *PluginGroup {
+	dn := "default"
+	pg := pl.getGroup(dn)
+	if pg == nil {
+		return (&PluginGroup{}).Group(dn, nil)
+	}
+	return nil
 }
 
 var pl = &pluginLoader{group: make(map[string]*PluginGroup)}
 
 type pluginLoader struct {
 	group map[string]*PluginGroup
-	speg  string // specified group 是有已经进入指定组的标志
+	perr  []error
 }
 
 func (pl *pluginLoader) getGroup(name string) *PluginGroup {
@@ -128,66 +150,67 @@ func (pl *pluginLoader) getGroup(name string) *PluginGroup {
 	return nil
 }
 
-func (pl *pluginLoader) WithGroup(name string, opt *PluginOption, f func(*pluginLoader)) {
-	if pl.speg != "" {
-		panic("不允许循环嵌套 WithGroup")
-	}
-	pl.speg = name
-
-	pg := pl.getGroup(name)
-	if pg == nil {
-		pg = &PluginGroup{
-			name: name,
-		}
-		pg.SetOption(opt)
-		pl.group[name] = pg
-	}
-	f(pl)
-	pl.speg = ""
+type PluginGroup struct {
+	plugins []*plugin
+	name    string             // 组名
+	opt     *PluginGroupOption // 组设置
 }
 
-// BIndPlugin 添加插件,如果在 WithGroup 中调用，则添加到 WithGroup 指定的组中
-func (pl *pluginLoader) BIndPlugin(f PluginFunc, opt *PluginOption) {
-	if pl.speg == "" {
-		pl.WithGroup("default", nil, func(pld *pluginLoader) {
-			pld.BIndPlugin(f, opt)
-		})
-		return
+// Group 插件组
+func (pg *PluginGroup) Group(name string, opt *PluginGroupOption) *PluginGroup {
+	if name == pg.name {
+		return pg
 	}
+	if pge := pl.getGroup(name); pge != nil {
+		return pge
+	}
+	pge := &PluginGroup{
+		name: name,
+	}
+	pge.SetOption(opt)
+	pl.group[name] = pge
+	return pge
+}
+
+// BindPlugin 为组绑定插件
+func (pg *PluginGroup) BindPlugin(f PluginFunc, opt *PluginOption) *PluginGroup {
 	p := &plugin{}
 	if opt == nil {
 		opt = &PluginOption{}
 		opt.Name = opt.getFuncName(f)
 	}
-
-	opt.coverValue(pl.group[pl.speg].opt)
-	p.bindPlugin(f, opt)
-	pl.group[pl.speg].checkExist(opt.Name) // 如果同组出现两个同名插件，会 panic
-	pl.group[pl.speg].plugins = append(pl.group[pl.speg].plugins, p)
-}
-
-type PluginGroup struct {
-	plugins []*plugin
-	name    string        // 组名
-	opt     *PluginOption // 对组内所有插件作用的全局设置
-}
-
-func (pg *PluginGroup) SetOption(opt *PluginOption) *PluginGroup {
-	if opt == nil {
-		opt = DefaultPluginOption()
+	opt.coverValue(pg.opt.GPluginOpt)
+	if pg.checkExist(opt.Name) {
+		err := errors.New(fmt.Sprintf("插件组 %s 中插件:%s 已存在，忽略", pg.name, opt.Name))
+		pl.pushError(err)
+		return pg
 	}
-	opt.withDefault(nil)
+	p.bindPlugin(f, opt)
+	pg.plugins = append(pg.plugins, p)
+	return pg
+}
 
+func (pg *PluginGroup) SetOption(opt *PluginGroupOption) *PluginGroup {
+	if opt == nil {
+		opt = DefaultPluginGroupOption()
+	}
+	opt.GPluginOpt.withDefault(nil)
 	pg.opt = opt.copy()
 	return pg
 }
 
-func (pg *PluginGroup) checkExist(name string) {
+func (pg *PluginGroup) GetErrors() []error {
+	return pl.getError()
+}
+
+func (pg *PluginGroup) checkExist(name string) bool {
 	for _, p := range pg.plugins {
 		if p.Name == name {
-			panic("插件名重复:" + name)
+			log.Printf("插件组 %s 中插件:%s 已存在，忽略", pg.name, name)
+			return true
 		}
 	}
+	return false
 }
 
 type plugin struct {
@@ -215,20 +238,28 @@ func (p *plugin) run(ctx *Context) {
 	p.function(ctx)
 }
 
-func startupPlugins() {
-	go func() {
-		for {
-			recvMsg := parseMessageBytes(getDataFromRecvChan())
-			if recvMsg == nil {
-				continue
-			}
-			for _, group := range getPluginLoader().group {
-				for _, p := range group.plugins {
-					ctx := newContext()
-					ctx.msg = recvMsg
-					go p.run(ctx)
-				}
-			}
+func (pl *pluginLoader) pushError(err error) {
+	pl.perr = append(pl.perr, err)
+}
+
+func (pl *pluginLoader) getError() []error {
+	return pl.perr
+}
+
+func (pl *pluginLoader) startup() {
+	for {
+		recvMsg := parseMessageBytes(getDataFromRecvChan())
+		if recvMsg == nil {
+			continue
 		}
-	}()
+		ctx := newContext()
+		ctx.msg = recvMsg
+		for _, group := range pl.group {
+			go func(g *PluginGroup) {
+				for _, p := range g.plugins {
+					go p.run(ctx.copy())
+				}
+			}(group)
+		}
+	}
 }
