@@ -5,12 +5,24 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
+	"strings"
 )
 
 var conn *websocket.Conn
 
-func listenCQHTTP(h string, p string) {
-	conn = connectToWS(h, p)
+func listenCQHTTP(cqAddr string) {
+	if cqAddr == "" {
+		cqAddr = "127.0.0.1:8080"
+	}
+	if !strings.Contains(cqAddr, "://") {
+		cqAddr = "ws://" + cqAddr
+	}
+
+	u, err := url.Parse(cqAddr)
+	if err != nil {
+		log.Fatal("url.Parse:", err)
+	}
+	conn = connectToWS(u.Hostname(), u.Port())
 	go recvDataFromCQHTTP()
 }
 
