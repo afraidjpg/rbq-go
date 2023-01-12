@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
-type PluginFunc func(*Context)
+type PluginFunc func(*Context) //
 type PluginFilterFunc func(ctx *Context) bool
 
+// PluginGroupOption 插件组选项
 type PluginGroupOption struct {
 	GPluginOpt *PluginOption // 组内插件的默认设置，详情见 PluginOption 的注释说明
 }
