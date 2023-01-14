@@ -15,7 +15,7 @@
 
 ## 使用方法  
 
-1. 安装 `go get github.com/afraidjpg/qq-robot-go`
+1. 安装 `go get github.com/afraidjpg/rbq-go`
 2. 下载 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp/releases)  
 3. 启动 `go-cqhttp` 并使用选择正向websocket连接
 4. 编写插件并运行你的程序
@@ -30,7 +30,7 @@
 ```go
 package main
 import (
-	app "github.com/afraidjpg/qq-robot-go"
+	app "github.com/afraidjpg/rbq-go"
 	"fmt"
 )
 
@@ -76,7 +76,7 @@ func main() {
 ```go
 package main
 
-import app "github.com/afraidjpg/qq-robot-go"
+import app "github.com/afraidjpg/rbq-go"
 
 var SimpleOption = &app.PluginOption{
     Name: "example_reply", // 插件名称

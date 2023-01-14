@@ -1,9 +1,9 @@
 package support
 
-import bot "github.com/afraidjpg/qq-robot-go"
+import "github.com/afraidjpg/rbq-go"
 
 // OnlyGroupMessage 只允许群聊消息
-func OnlyGroupMessage(ctx *bot.Context) bool {
+func OnlyGroupMessage(ctx *rbq.Context) bool {
 	if !ctx.IsGroup() {
 		return false
 	}
@@ -11,7 +11,7 @@ func OnlyGroupMessage(ctx *bot.Context) bool {
 }
 
 // OnlyPrivateMessage 只允许私聊消息
-func OnlyPrivateMessage(ctx *bot.Context) bool {
+func OnlyPrivateMessage(ctx *rbq.Context) bool {
 	if ctx.IsGroup() {
 		return false
 	}

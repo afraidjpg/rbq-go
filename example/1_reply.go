@@ -1,8 +1,6 @@
 package example
 
-import (
-	"github.com/afraidjpg/qq-robot-go"
-)
+import qq_robot_go "github.com/afraidjpg/rbq-go"
 
 var justReplyQQ = int64(0)
 
@@ -13,7 +11,7 @@ func ExampleReplyMessage(justQQ int64) {
 
 	pld := app.GetPluginLoader()
 	pld.BindPlugin(Reply, nil)
-	
+
 	app.Run("")
 }
 

@@ -1,1 +1,1 @@
-package qq_robot_go
+package rbq
