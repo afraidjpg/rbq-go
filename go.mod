@@ -1,4 +1,4 @@
-module github.com/afraidjpg/qq-robot-go
+module github.com/afraidjpg/rbq-go
 
 go 1.18
 

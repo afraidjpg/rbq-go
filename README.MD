@@ -13,15 +13,12 @@
 一个人的力量是有限的，所以如果你愿意使用，并在使用过程中有任何问题、新的feature/代码修改建议，欢迎提出issue，我会尽可能的回复并改进。
 
 
-----------------
-
 ## 使用方法  
 
-1. 安装  
-`go get github.com/afraidjpg/qq-robot-go`
+1. 安装 `go get github.com/afraidjpg/rbq-go`
 2. 下载 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp/releases)  
 3. 启动 `go-cqhttp` 并使用选择正向websocket连接
-5. 编写插件并运行你的程序
+4. 编写插件并运行你的程序
 
 ## 示例
 
@@ -31,9 +28,9 @@
 
 ### 最简单插件示例
 ```go
-package src
+package main
 import (
-	app "github.com/afraidjpg/qq-robot-go"
+	app "github.com/afraidjpg/rbq-go"
 	"fmt"
 )
 
@@ -77,9 +74,9 @@ func main() {
 
 `BIndPlugin`的第二个参数是一个`*PluginOption`类型的变量，可以为插件设置一些选项，例如：
 ```go
-package src
+package main
 
-import app "github.com/afraidjpg/qq-robot-go"
+import app "github.com/afraidjpg/rbq-go"
 
 var SimpleOption = &app.PluginOption{
     Name: "example_reply", // 插件名称

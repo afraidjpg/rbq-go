@@ -2,7 +2,7 @@ package setu_api
 
 import (
 	"encoding/json"
-	"github.com/afraidjpg/qq-robot-go/old/util"
+	"github.com/afraidjpg/rbq-go/util"
 )
 
 // LoliconApiResp LOLicon API 返回的数据结构定义

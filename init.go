@@ -1,4 +1,4 @@
-package qq_robot_go
+package rbq
 
 import jsoniter "github.com/json-iterator/go"
 

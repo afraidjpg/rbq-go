@@ -1,7 +1,7 @@
 package example
 
 import (
-	qq_robot_go "github.com/afraidjpg/qq-robot-go"
+	qq_robot_go "github.com/afraidjpg/rbq-go"
 )
 
 // ExamplePluginGroup 样例，消息组的用法

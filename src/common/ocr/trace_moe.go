@@ -3,7 +3,7 @@ package ocr
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/afraidjpg/qq-robot-go/old/util"
+	"github.com/afraidjpg/rbq-go/util"
 )
 
 /*
