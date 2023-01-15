@@ -2,6 +2,7 @@ package rbq
 
 import (
 	"github.com/buger/jsonparser"
+	"strings"
 )
 
 // RecvNormalMsg 接受的消息结构体类型
@@ -50,4 +51,29 @@ func parseMessageBytes(recv []byte) *RecvNormalMsg {
 	}
 
 	return nil
+}
+
+type Reply struct {
+	UserId  int64 `json:"user_id"`
+	GroupId int64 `json:"group_id"`
+	Data    *strings.Builder
+	resp    *ApiReq
+}
+
+func (r *Reply) send(userID, groupID int64) {
+	rep := r.Data.String()
+	if rep == "" {
+		return
+	}
+	r.resp.pushMsg(userID, groupID, rep, false)
+}
+
+func (r *Reply) WriteText(s ...string) {
+	for _, v := range s {
+		r.Data.WriteString(v)
+	}
+}
+
+func (r *Reply) WriteCQCode(cc *CQCodeEle) {
+	r.WriteText(cc.String())
 }

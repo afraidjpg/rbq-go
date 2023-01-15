@@ -1,9 +1,12 @@
 package rbq
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	"github.com/afraidjpg/rbq-go/util"
+	"github.com/json-iterator/go"
+)
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
+var json jsoniter.API
 
 func init() {
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
+	json = util.GetJsonApi()
 }

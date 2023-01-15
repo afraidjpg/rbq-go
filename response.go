@@ -21,30 +21,25 @@ type GroupMsg struct {
 	AutoEscape bool   `json:"auto_escape"`
 }
 
-func respMessage(userId, groupId int64, message string, autoEscape bool) {
-	var req ApiReq
+func (ar *ApiReq) pushMsg(userId, groupId int64, message string, autoEscape bool) {
 	if groupId != 0 {
-		req = ApiReq{
-			"send_group_msg",
-			GroupMsg{
-				groupId,
-				message,
-				autoEscape,
-			},
+		ar.Action = "send_group_msg"
+		ar.Params = GroupMsg{
+			groupId,
+			message,
+			autoEscape,
 		}
 	} else {
-		req = ApiReq{
-			"send_private_msg",
-			PrivateMsg{
-				userId,
-				groupId,
-				message,
-				autoEscape,
-			},
+		ar.Action = "send_private_msg"
+		ar.Params = PrivateMsg{
+			userId,
+			groupId,
+			message,
+			autoEscape,
 		}
 	}
 
-	j, err := json.Marshal(req)
+	j, err := json.Marshal(ar)
 	if err != nil {
 		log.Println(err)
 		return
