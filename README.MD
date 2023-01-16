@@ -21,6 +21,7 @@ go get -u github.com/afraidjpg/rbq-go
 ```
 
 <h2>使用</h2>
+
 示例代码请 [点击这里](./example)
 
 ```go
@@ -40,12 +41,12 @@ func YourPlugin(ctx *rbq.Context) {
 	
     ctx.Reply("test") // 发送 "test"
     
-    ctx.JoinMessage("boo") // 添加消息但不立刻发送
-    ctx.JoinMessage("bar")
+    ctx.AddMsg("boo") // 添加消息但不立刻发送
+    ctx.AddMsg("bar")
     ctx.Reply() // 发送 "boobar"
 
-    ctx.JoinMessage("hello") // 添加消息但不立刻发送
-    ctx.JoinMessage(" ")
+    ctx.AddMsg("hello") // 添加消息但不立刻发送
+    ctx.AddMsg(" ")
     ctx.Reply("world") // 发送 "hello world"
 }
 
@@ -74,6 +75,7 @@ func main() {
 ```
 
 <h2>运行</h2>
+
 - 下载 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp/releases)
 - 启动 `go-cqhttp` 并使用选择正向websocket连接
 - 运行你的程序
