@@ -35,10 +35,18 @@ func (c *CQCodeEle) String() string {
 		if c._d[key] != "" {
 			c._s.WriteString(key)
 			c._s.WriteString("=")
-			c._s.WriteString(c._d[key])
+			c._s.WriteString(c.escapeChar(c._d[key]))
 			c._s.WriteString(",")
 		}
 	}
 	c._s.WriteString("]")
 	return c._s.String()
+}
+
+func (c *CQCodeEle) escapeChar(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "[", "&#91;")
+	s = strings.ReplaceAll(s, "]", "&#93;")
+	s = strings.ReplaceAll(s, ",", "&#44;")
+	return s
 }
