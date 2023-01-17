@@ -253,12 +253,11 @@ func (pl *pluginLoader) startup() {
 		if recvMsg == nil {
 			continue
 		}
-		ctx := newContext()
-		ctx.msg = recvMsg
 		for _, group := range pl.group {
 			go func(g *PluginGroup) {
 				for _, p := range g.plugins {
-					go p.run(ctx.copy())
+					ctx := newContext(recvMsg)
+					go p.run(ctx)
 				}
 			}(group)
 		}
