@@ -93,6 +93,7 @@ func (c *CQCodeEle) Errors() []error {
 }
 
 func (c *CQCodeEle) HasError() bool {
+	c.check()
 	hasErr := len(c.errors) > 0
 	if c._e != nil {
 		hasErr = hasErr || c._e.HasError()
@@ -101,7 +102,7 @@ func (c *CQCodeEle) HasError() bool {
 }
 
 func (c *CQCodeEle) String() string {
-	if c.HasError() || !c.check() {
+	if c.HasError() {
 		return ""
 	}
 
@@ -122,7 +123,7 @@ func (c *CQCodeEle) String() string {
 	c._s.WriteString(c._t)
 	c._s.WriteString(",")
 	for _, s := range w {
-		c._s.WriteString(s)
+		c._s.WriteString(cqEscape(s))
 		if s != w[len(w)-1] {
 			c._s.WriteString(",")
 		}
@@ -310,4 +311,219 @@ func (c *CQRecord) AllOption(file string, magic int, url string, cache int, prox
 	c._d["cache"] = cqCoverNumOption(cache)
 	c._d["proxy"] = cqCoverNumOption(proxy)
 	c._d["timeout"] = to
+}
+
+// CQRps TODO 猜拳 rps = rock-paper-scissors, go-cqhttp 未实现
+type CQRps struct {
+	*CQCodeEle
+}
+
+// CQDice TODO 掷骰子，go-cqhttp 未实现
+type CQDice struct {
+	*CQCodeEle
+}
+
+// CQShake TODO 戳一戳，go-cqhttp 未实现
+type CQShake struct {
+	*CQCodeEle
+}
+
+// CQAnonymous TODO 匿名消息，go-cqhttp 未实现
+type CQAnonymous struct {
+	*CQCodeEle
+}
+
+//func newCQAnonymous() *CQAnonymous {
+//	om := orderedmap.New[string, bool]()
+//	om.Set("ignore", false)
+//	return &CQAnonymous{
+//		CQCodeEle: &CQCodeEle{
+//			_k: om,
+//			_t: "anonymous",
+//			_s: &strings.Builder{},
+//		},
+//	}
+//}
+
+// CQShare 分享链接
+type CQShare struct {
+	*CQCodeEle
+}
+
+func NewCQShare() *CQShare {
+	om := orderedmap.New[string, bool]()
+	om.Set("url", true)
+	om.Set("title", true)
+	om.Set("content", false)
+	om.Set("image", false)
+	return &CQShare{
+		CQCodeEle: &CQCodeEle{
+			_k: om,
+			_t: "share",
+			_s: &strings.Builder{},
+		},
+	}
+}
+
+func (c *CQShare) Link(title, url string) {
+	c.AllOption(url, title, "", "")
+}
+
+// AllOption 分享链接，可以设置全部参数, content 和 image 为可选参数
+// content 为分享内容描述，image 为分享图片封面
+func (c *CQShare) AllOption(url, title, content, image string) {
+	c.Reset()
+	c._d["url"] = url
+	c._d["title"] = title
+	c._d["content"] = content
+	c._d["image"] = image
+}
+
+// CQContact TODO 推荐好友/群，go-cqhttp 未实现
+type CQContact struct {
+	*CQCodeEle
+}
+
+// CQLocation TODO 发送位置，go-cqhttp 未实现
+type CQLocation struct {
+	*CQCodeEle
+}
+
+const (
+	CQMusicTypeQQ  = "qq"
+	CQMusicType163 = "163"
+	CQMusicTypeXM  = "xm"
+)
+
+// CQMusic 音乐分享
+type CQMusic struct {
+	*CQCodeEle
+}
+
+func NewCQMusic() *CQMusic {
+	om := orderedmap.New[string, bool]()
+	om.Set("type", true)
+	om.Set("id", true)
+	return &CQMusic{
+		CQCodeEle: &CQCodeEle{
+			_k: om,
+			_t: "music",
+			_s: &strings.Builder{},
+		},
+	}
+}
+
+// Share 分享音乐
+func (c *CQMusic) Share(type_ string, id string) {
+	c.Reset()
+	type_ = strings.ToLower(type_)
+	if type_ != "qq" && type_ != "163" && type_ != "xm" {
+		c.errors = append(c.errors, newCQError(c._t, "type 必须为 qq、163 或 xm"))
+		return
+	}
+	c._d["type"] = type_
+	c._d["id"] = id
+}
+
+// CQMusicCustom 自定义音乐分享
+type CQMusicCustom struct {
+	*CQCodeEle
+}
+
+func NewCQMusicCustom() *CQMusicCustom {
+	om := orderedmap.New[string, bool]()
+	om.Set("type", true)
+	om.Set("url", true)
+	om.Set("audio", true)
+	om.Set("title", true)
+	om.Set("content", false)
+	om.Set("image", false)
+	return &CQMusicCustom{
+		CQCodeEle: &CQCodeEle{
+			_k: om,
+			_t: "music",
+			_s: &strings.Builder{},
+		},
+	}
+}
+
+// Share 分享自定义音乐
+func (c *CQMusicCustom) Share(url, audio, title string) {
+	c.AllOption(url, audio, title, "", "")
+}
+
+// AllOption 分享自定义音乐，可以设置全部参数, content 为分享内容描述，image 为分享图片封面
+func (c *CQMusicCustom) AllOption(url, audio, title, content, image string) {
+	c.Reset()
+	c._d["type"] = "custom"
+	c._d["url"] = url
+	c._d["audio"] = audio
+	c._d["title"] = title
+	c._d["content"] = content
+	c._d["image"] = image
+}
+
+// CQImage的ID可选参数
+const (
+	CQImageIDNormal  = 40000 // 普通
+	CQImageIDPhantom = 40001 // 幻影
+	CQImageIDShake   = 40002 // 抖动
+	CQImageIDBirth   = 40003 // 生日
+	CQImageIDLove    = 40004 // 爱你
+	CQImageIDSeek    = 40005 // 征友
+)
+
+// CQImage 图片
+type CQImage struct {
+	*CQCodeEle
+}
+
+func NewCQImage() *CQImage {
+	om := orderedmap.New[string, bool]()
+	om.Set("file", true)
+	om.Set("type", false)
+	om.Set("subType", false)
+	om.Set("url", false)
+	om.Set("cache", false)
+	om.Set("id", false)
+	om.Set("c", false)
+	return &CQImage{
+		CQCodeEle: &CQCodeEle{
+			_k: om,
+			_t: "image",
+			_s: &strings.Builder{},
+		},
+	}
+}
+
+// File 通过文件发送图片, file 为图片文件路径 或者 网络url路径
+func (c *CQImage) File(file string) {
+	c.AllOption(file, "", "", "", -1, -1, -1)
+}
+
+// AllOption 通过文件发送图片
+// imageType 为图片类型，可选参数，支持 "flash"、"show" 空表示普通图片
+// subType 为图片子类型，只支持群聊 ( 咱不知道这个参数是啥 )
+// url 为图片链接，可选参数，如果指定了此参数则忽略 file 参数
+// cache 为是否使用缓存，可选参数，只有 url 不为空此参数才有意义
+// id 发送秀图时的特效id, 默认为40000
+// cc 通过网络下载图片时的线程数, 默认单线程. (在资源不支持并发时会自动处理)
+func (c *CQImage) AllOption(file, imageType, subType, url string, cache, id, cc int) {
+	c.Reset()
+	if url == "" {
+		cache = -1
+	}
+
+	if imageType != "" && imageType != "flash" && imageType != "show" {
+		c.errors = append(c.errors, newCQError(c._t, "type 只能为 flash 或 show 或者空"))
+		return
+	}
+
+	c._d["file"] = file
+	c._d["type"] = imageType
+	c._d["subType"] = subType
+	c._d["url"] = url
+	c._d["cache"] = cqCoverNumOption(cache)
+	c._d["id"] = cqCoverNumOption(id)
+	c._d["c"] = cqCoverNumOption(cc)
 }

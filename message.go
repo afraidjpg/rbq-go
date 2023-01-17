@@ -46,11 +46,88 @@ func (c *MessageHandle) AddAt(userId ...int64) {
 	c.rep.WriteCQCode(at)
 }
 
+// AddAtOpt 添加回复某人的消息，这个方法只对发送到群的消息生效
+func (r *ReplyMessage) AddAtOpt(name []string, userId []int64) {
+	at := NewCQAt()
+	at.ToWithNotExistName(name, userId)
+	r.WriteCQCode(at)
+}
+
 // AddFace 添加表情，id为表情的id，其范围为 0~221，具体请查看 CQFace.Id 的注释
 func (c *MessageHandle) AddFace(id ...int64) {
 	face := NewCQFace()
 	face.Id(id...)
 	c.rep.WriteCQCode(face)
+}
+
+// AddRecord 添加语音消息，file为语音文件的路径 或者 网络路径
+func (c *MessageHandle) AddRecord(file string) {
+	rcd := NewCQRecord()
+	rcd.File(file)
+	c.rep.WriteCQCode(rcd)
+}
+
+// AddRecordOpt 添加语音消息
+func (r *ReplyMessage) AddRecordOpt(file string, magic int, url string, cache int, proxy int, timeout int) {
+	rcd := NewCQRecord()
+	rcd.AllOption(file, magic, url, cache, proxy, timeout)
+	r.WriteCQCode(rcd)
+}
+
+// AddShare 添加分享链接
+func (c *MessageHandle) AddShare(title, url string) {
+	share := NewCQShare()
+	share.Link(title, url)
+	c.rep.WriteCQCode(share)
+}
+
+// AddShareOpt 添加分享链接
+// content 为分享内容描述，image 为分享图片封面
+func (r *ReplyMessage) AddShareOpt(title, url, content, image string) {
+	share := NewCQShare()
+	share.AllOption(title, url, content, image)
+	r.WriteCQCode(share)
+}
+
+// AddMusic 添加音乐分享
+func (r *ReplyMessage) AddMusic(type_ string, id string) {
+	music := NewCQMusic()
+	music.Share(type_, id)
+	r.WriteCQCode(music)
+}
+
+// AddMusicCustom 添加自定义音乐分享
+func (r *ReplyMessage) AddMusicCustom(url, audio, title string) {
+	music := NewCQMusicCustom()
+	music.Share(url, audio, title)
+	r.WriteCQCode(music)
+}
+
+// AddMusicCustomOpt 添加自定义音乐分享
+func (r *ReplyMessage) AddMusicCustomOpt(url, audio, title, content, image string) {
+	music := NewCQMusicCustom()
+	music.AllOption(url, audio, title, content, image)
+	r.WriteCQCode(music)
+}
+
+// AddImage 添加图片消息，file为图片文件的路径 或者 网络路径
+func (c *MessageHandle) AddImage(file string) {
+	img := NewCQImage()
+	img.File(file)
+	c.rep.WriteCQCode(img)
+}
+
+// AddImageOpt 添加图片消息
+// imageType 为图片类型，可选参数，支持 "flash"、"show" 空表示普通图片
+// subType 为图片子类型，只支持群聊 ( 咱不知道这个参数是啥 )
+// url 为图片链接，可选参数，如果指定了此参数则忽略 file 参数
+// cache 为是否使用缓存，可选参数，只有 url 不为空此参数才有意义
+// id 发送秀图时的特效id, 默认为40000
+// cc 通过网络下载图片时的线程数, 默认单线程. (在资源不支持并发时会自动处理)
+func (r *ReplyMessage) AddImageOpt(file, imageType, subType, url string, cache, id, cc int) {
+	img := NewCQImage()
+	img.AllOption(file, imageType, subType, url, cache, id, cc)
+	r.WriteCQCode(img)
 }
 
 // Reply 回复消息
