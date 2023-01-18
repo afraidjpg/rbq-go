@@ -8,7 +8,7 @@ func newContext(Recv *RecvNormalMsg) *Context {
 	return &Context{
 		MessageHandle: &MessageHandle{
 			recv: Recv,
-			rep:  &ReplyMessage{},
+			rep:  newReplyMessage(),
 		},
 	}
 }

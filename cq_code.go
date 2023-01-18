@@ -2,6 +2,8 @@ package rbq
 
 import "C"
 import (
+	"github.com/afraidjpg/rbq-go/util"
+	"github.com/google/uuid"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"strconv"
 	"strings"
@@ -31,6 +33,14 @@ func cqCoverNumOption(i int) string {
 	}
 
 	return "1"
+}
+
+func cqIsUrl(s string) bool {
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+}
+
+func cqIsFile(s string) bool {
+	return strings.HasPrefix(s, "file://") || strings.HasPrefix(s, "base64://") || cqIsUrl(s)
 }
 
 type CQCodeError struct {
@@ -106,6 +116,9 @@ func (c *CQCodeEle) String() string {
 		return ""
 	}
 
+	if c._s.Len() > 0 {
+		return c._s.String()
+	}
 	w := []string{}
 	k := c._k
 	for ele := k.Oldest(); ele != nil; ele = ele.Next() {
@@ -298,6 +311,10 @@ func (c *CQRecord) AllOption(file string, magic int, url string, cache int, prox
 	if url == "" {
 		// 只有使用url发送时，cache 才有效
 		cache = -1
+	}
+
+	if file == "" && url != "" {
+		file = util.RandomName()
 	}
 
 	to := ""
@@ -510,6 +527,10 @@ func (c *CQImage) File(file string) {
 // cc 通过网络下载图片时的线程数, 默认单线程. (在资源不支持并发时会自动处理)
 func (c *CQImage) AllOption(file, imageType, subType, url string, cache, id, cc int) {
 	c.Reset()
+	if url != "" && file == "" {
+		file = uuid.Must(uuid.NewRandom()).String() // 随机赋予一个文件名
+	}
+
 	if url == "" {
 		cache = -1
 	}

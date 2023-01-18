@@ -1,7 +1,9 @@
 package rbq
 
 import (
+	"fmt"
 	"github.com/buger/jsonparser"
+	"log"
 	"strings"
 )
 
@@ -111,6 +113,7 @@ func (c *MessageHandle) AddMusicCustomOpt(url, audio, title, content, image stri
 }
 
 // AddImage 添加图片消息，file为图片文件的路径 或者 网络路径
+// 支持文件绝对路径，url，base64
 func (c *MessageHandle) AddImage(file string) {
 	img := NewCQImage()
 	img.File(file)
@@ -202,11 +205,18 @@ type ReplyMessageDataUnit struct {
 }
 
 type ReplyMessage struct {
-	UserId  int64                  `json:"user_id"`
-	GroupId int64                  `json:"group_id"`
-	Message []ReplyMessageDataUnit `json:"message"`
+	UserId  int64
+	GroupId int64
+	Message []ReplyMessageDataUnit
 	Data    *strings.Builder
 	resp    *ApiReq
+}
+
+func newReplyMessage() *ReplyMessage {
+	return &ReplyMessage{
+		Data: &strings.Builder{},
+		resp: &ApiReq{},
+	}
 }
 
 func (r *ReplyMessage) send(userID, groupID int64) {
@@ -222,7 +232,11 @@ func (r *ReplyMessage) concatMessage() {
 	for _, v := range r.Message {
 		if v.cq != nil {
 			s := v.cq.String()
+			fmt.Println("cqcode:", s)
 			if v.cq.HasError() {
+				for _, e := range v.cq.Errors() {
+					log.Println("CQCode Error:", e)
+				}
 				continue
 			}
 			r.Data.WriteString(s)
