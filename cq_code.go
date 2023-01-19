@@ -71,6 +71,7 @@ type CQCodeEleInterface interface {
 }
 
 type CQCodeEle struct {
+	_scope int                                  // 允许的作用域，收或发，或者可收可发
 	_k     *orderedmap.OrderedMap[string, bool] // key是否必须
 	_d     map[string]string                    // key对应的值
 	_t     string                               // cq码类型
@@ -172,9 +173,10 @@ func NewCQAt() *CQAt {
 	return &CQAt{
 		isRoot: true,
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "at",
-			_s: &strings.Builder{},
+			_scope: CQScopeReceive | CQScopeSend,
+			_k:     om,
+			_t:     "at",
+			_s:     &strings.Builder{},
 		},
 	}
 }
@@ -183,36 +185,21 @@ func NewCQAt() *CQAt {
 func (c *CQAt) To(userId ...int64) {
 	name := make([]string, len(userId))
 	for i, v := range userId {
-		name[i] = strconv.FormatInt(v, 10)
+		name[i] = util.IntToString(v)
 	}
 
-	c.ToWithNotExistName(name, userId)
+	c.AllOption(name, userId)
 }
 
-// ToWithNotExistName 设置@的QQ号，如果不存在则显示name
-func (c *CQAt) ToWithNotExistName(name []string, userId []int64) {
+// AllOption 设置@的QQ号，如果不存在则显示name
+func (c *CQAt) AllOption(name []string, userId []int64) {
 	if len(name) != len(userId) {
 		c.errors = append(c.errors, newCQError(c._t, "name和userId长度不一致"))
 		return
 	}
 	c.Reset()
 	if c.isRoot {
-		ext := make(map[int64]bool)
-		u := make([]int64, 0, len(userId))
-		n := make([]string, 0, len(name))
-		for i, v := range userId {
-			if v <= 0 {
-				u = []int64{0}
-				n = []string{"全体成员"}
-				break
-			}
-			if b := ext[v]; !b {
-				u = append(u, v)
-				n = append(n, name[i])
-			}
-		}
-		userId = u
-		name = n
+		name, userId = c.unique(name, userId)
 	}
 
 	if len(userId) == 0 {
@@ -226,7 +213,7 @@ func (c *CQAt) ToWithNotExistName(name []string, userId []int64) {
 		c._d["qq"] = "all"
 		c._d["name"] = "全体成员"
 	} else {
-		c._d["qq"] = strconv.FormatInt(uid, 10)
+		c._d["qq"] = util.IntToString(uid)
 	}
 	c._d["name"] = n
 
@@ -235,8 +222,26 @@ func (c *CQAt) ToWithNotExistName(name []string, userId []int64) {
 	}
 	at := NewCQAt()
 	at.isRoot = false
-	at.ToWithNotExistName(name[1:], userId[1:])
+	at.AllOption(name[1:], userId[1:])
 	c._e = at
+}
+
+func (c *CQAt) unique(name []string, userId []int64) ([]string, []int64) {
+	ext := make(map[int64]bool)
+	u := make([]int64, 0, len(userId))
+	n := make([]string, 0, len(name))
+	for i, v := range userId {
+		if v <= 0 {
+			u = []int64{0}
+			n = []string{"全体成员"}
+			break
+		}
+		if b := ext[v]; !b {
+			u = append(u, v)
+			n = append(n, name[i])
+		}
+	}
+	return n, u
 }
 
 type CQFace struct {
@@ -248,9 +253,10 @@ func NewCQFace() *CQFace {
 	om.Set("id", true)
 	return &CQFace{
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "face",
-			_s: &strings.Builder{},
+			_scope: CQScopeReceive | CQScopeSend,
+			_k:     om,
+			_t:     "face",
+			_s:     &strings.Builder{},
 		},
 	}
 }
@@ -268,7 +274,7 @@ func (c *CQFace) Id(id ...int64) {
 		c.errors = append(c.errors, newCQError(c._t, "id 必须在 0-221 之间"))
 		return
 	}
-	c._d["id"] = strconv.FormatInt(i, 10)
+	c._d["id"] = util.IntToString(i)
 
 	if len(id) == 1 {
 		return
@@ -293,9 +299,10 @@ func NewCQRecord() *CQRecord {
 	om.Set("timeout", false)
 	return &CQRecord{
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "record",
-			_s: &strings.Builder{},
+			_scope: CQScopeReceive | CQScopeSend,
+			_k:     om,
+			_t:     "record",
+			_s:     &strings.Builder{},
 		},
 	}
 }
@@ -328,6 +335,11 @@ func (c *CQRecord) AllOption(file string, magic int, url string, cache int, prox
 	c._d["cache"] = cqCoverNumOption(cache)
 	c._d["proxy"] = cqCoverNumOption(proxy)
 	c._d["timeout"] = to
+}
+
+// CQVideo TODO 短视频 暂未实现
+type CQVideo struct {
+	*CQCodeEle
 }
 
 // CQRps TODO 猜拳 rps = rock-paper-scissors, go-cqhttp 未实现
@@ -375,9 +387,10 @@ func NewCQShare() *CQShare {
 	om.Set("image", false)
 	return &CQShare{
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "share",
-			_s: &strings.Builder{},
+			_scope: CQScopeReceive | CQScopeSend,
+			_k:     om,
+			_t:     "share",
+			_s:     &strings.Builder{},
 		},
 	}
 }
@@ -405,12 +418,6 @@ type CQContact struct {
 type CQLocation struct {
 	*CQCodeEle
 }
-
-const (
-	CQMusicTypeQQ  = "qq"
-	CQMusicType163 = "163"
-	CQMusicTypeXM  = "xm"
-)
 
 // CQMusic 音乐分享
 type CQMusic struct {
@@ -480,16 +487,6 @@ func (c *CQMusicCustom) AllOption(url, audio, title, content, image string) {
 	c._d["image"] = image
 }
 
-// CQImage的ID可选参数
-const (
-	CQImageIDNormal  = 40000 // 普通
-	CQImageIDPhantom = 40001 // 幻影
-	CQImageIDShake   = 40002 // 抖动
-	CQImageIDBirth   = 40003 // 生日
-	CQImageIDLove    = 40004 // 爱你
-	CQImageIDSeek    = 40005 // 征友
-)
-
 // CQImage 图片
 type CQImage struct {
 	*CQCodeEle
@@ -547,4 +544,55 @@ func (c *CQImage) AllOption(file, imageType, subType, url string, cache, id, cc 
 	c._d["cache"] = cqCoverNumOption(cache)
 	c._d["id"] = cqCoverNumOption(id)
 	c._d["c"] = cqCoverNumOption(cc)
+}
+
+// CQReply 回复
+type CQReply struct {
+	*CQCodeEle
+}
+
+func NewCQReply() *CQReply {
+	om := orderedmap.New[string, bool]()
+	om.Set("id", true)
+	om.Set("text", false)
+	om.Set("qq", false)
+	om.Set("time", false)
+	om.Set("seq", false)
+	return &CQReply{
+		CQCodeEle: &CQCodeEle{
+			_k: om,
+			_t: "reply",
+			_s: &strings.Builder{},
+		},
+	}
+}
+
+// Id 回复消息
+func (c *CQReply) Id(id int64) {
+	c.AllOption(id, "", 0, 0, 0)
+}
+
+// AllOption 回复消息
+// id 为消息ID
+// text 自定义回复的消息，如果id，和text同时不为空，则使用自定义消息
+// qq 自定义回复时的QQ号，如果text不为空则必填
+// time 自定义回复时的时间，可选，10位unix时间戳
+// seq 起始消息序号, 可通过 get_msg 获得，可选
+func (c *CQReply) AllOption(id int64, text string, qq, time, seq int64) {
+	c.Reset()
+	if text != "" && qq <= 0 {
+		c.errors = append(c.errors, newCQError(c._t, "text不为空时，qq必填"))
+		return
+	}
+
+	c._d["id"] = util.IntToString(id)
+	c._d["text"] = text
+	c._d["qq"] = util.IntToString(qq)
+	c._d["time"] = util.IntToString(time)
+	c._d["seq"] = util.IntToString(seq)
+}
+
+// CQRedBag 红包
+type CQRedBag struct {
+	*CQCodeEle
 }

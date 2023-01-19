@@ -51,7 +51,7 @@ func (c *MessageHandle) AddAt(userId ...int64) {
 // AddAtOpt 添加回复某人的消息，这个方法只对发送到群的消息生效
 func (c *MessageHandle) AddAtOpt(name []string, userId []int64) {
 	at := NewCQAt()
-	at.ToWithNotExistName(name, userId)
+	at.AllOption(name, userId)
 	c.rep.WriteCQCode(at)
 }
 
@@ -133,7 +133,21 @@ func (c *MessageHandle) AddImageOpt(file, imageType, subType, url string, cache,
 	c.rep.WriteCQCode(img)
 }
 
-// Reply 回复消息
+// AddReply 添加回复消息
+func (c *MessageHandle) AddReply(id int64) {
+	reply := NewCQReply()
+	reply.Id(id)
+	c.rep.WriteCQCode(reply)
+}
+
+// AddReplyOpt 添加回复消息
+func (c *MessageHandle) AddReplyOpt(id int64, text string, qq, time, seq int64) {
+	reply := NewCQReply()
+	reply.AllOption(id, text, qq, time, seq)
+	c.rep.WriteCQCode(reply)
+}
+
+// Reply 发送消息，默认向消息来源发送，如群，私聊
 func (c *MessageHandle) Reply(ss ...string) {
 	for _, s := range ss {
 		c.rep.WriteText(s)
@@ -141,12 +155,12 @@ func (c *MessageHandle) Reply(ss ...string) {
 	c.rep.send(c.recv.UserId, c.recv.GroupId)
 }
 
-// SendToPrivate 向私聊发送消息
+// SendToPrivate 向指定私聊发送消息
 func (c *MessageHandle) SendToPrivate(userId int64) {
 	c.rep.send(userId, 0)
 }
 
-// SendToGroup 向群聊发送消息
+// SendToGroup 向指定群聊发送消息
 func (c *MessageHandle) SendToGroup(groupId int64) {
 	c.rep.send(0, groupId)
 }

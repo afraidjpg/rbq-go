@@ -22,13 +22,13 @@ func TestCQAt_To(t *testing.T) {
 	at.To(22, 0)
 	assert.Equal(t, at.String(), "[CQ:at,qq=all,name=全体成员]")
 
-	at.ToWithNotExistName([]string{"不存在", "不存在2号"}, []int64{4001, 4002})
+	at.AllOption([]string{"不存在", "不存在2号"}, []int64{4001, 4002})
 	assert.Equal(t, at.String(), "[CQ:at,qq=4001,name=不存在][CQ:at,qq=4002,name=不存在2号]")
 
-	at.ToWithNotExistName([]string{"不存在", "不存在2号", ""}, []int64{4001, 4002, 0})
+	at.AllOption([]string{"不存在", "不存在2号", ""}, []int64{4001, 4002, 0})
 	assert.Equal(t, at.String(), "[CQ:at,qq=all,name=全体成员]")
 
-	at.ToWithNotExistName([]string{"不存在", "不存在2号"}, []int64{4001, 4002, 5001})
+	at.AllOption([]string{"不存在", "不存在2号"}, []int64{4001, 4002, 5001})
 	assert.Equal(t, at.Errors()[0].Error(), "at: name和userId长度不一致")
 }
 
