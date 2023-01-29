@@ -9,18 +9,19 @@ import (
 	"strings"
 )
 
-//const (
-//	group = 1  // 群
-//	private = group << 1 // 私聊
-//	friend = private << 1 // 好友
-//	stranger = friend << 1 // 陌生人
-//)
-
 func cqEscape(s string) string {
 	s = strings.ReplaceAll(s, "&", "&amp;")
 	s = strings.ReplaceAll(s, "[", "&#91;")
 	s = strings.ReplaceAll(s, "]", "&#93;")
 	s = strings.ReplaceAll(s, ",", "&#44;")
+	return s
+}
+
+func cqEscapeReverse(s string) string {
+	s = strings.ReplaceAll(s, "&#44;", ",")
+	s = strings.ReplaceAll(s, "&#93;", "]")
+	s = strings.ReplaceAll(s, "&#91;", "[")
+	s = strings.ReplaceAll(s, "&amp;", "&")
 	return s
 }
 
@@ -63,17 +64,78 @@ func newCQError(t string, s string) *CQCodeError {
 	}
 }
 
+func cqDecodeFromString(s string) CQCodeEleInterface {
+	s = strings.Trim(s, "[]")
+	ts := strings.Split(s, ",")
+	typeName := strings.Split(ts[0], ":")[1]
+	dataKV := map[string]string{}
+	for _, seg := range ts[1:] {
+		kv := strings.Split(seg, "=")
+		dataKV[kv[0]] = cqEscapeReverse(kv[1])
+	}
+
+	var cq CQCodeEleInterface
+	switch typeName {
+	case "at":
+		cq = NewCQAt()
+	case "face":
+		cq = NewCQFace()
+	case "record":
+		cq = NewCQRecord()
+	case "video":
+		return nil
+	case "rps":
+		return nil
+	case "dice":
+		return nil
+	case "shake":
+		return nil
+	case "anonymous":
+		return nil
+	case "share":
+		cq = NewCQMusic()
+	case "contact":
+		return nil
+	case "location":
+		return nil
+	case "music":
+		if dataKV["type"] == "custom" {
+			cq = NewCQMusicCustom()
+		} else {
+			cq = NewCQMusic()
+		}
+	case "image":
+		cq = NewCQImage()
+	case "reply":
+		cq = NewCQReply()
+	}
+
+	if cq == nil {
+		return nil
+	}
+
+	b := cq.setData(dataKV)
+
+	if b == false {
+		return nil
+	}
+	return cq
+}
+
 type CQCodeEleInterface interface {
 	String() string  // 返回CQ码字符串
 	Errors() []error // 返回错误
 	HasError() bool
 	Child() CQCodeEleInterface
+	setData(data map[string]string) bool
 }
 
 type CQCodeEle struct {
-	_scope int                                  // 允许的作用域，收或发，或者可收可发
-	_k     *orderedmap.OrderedMap[string, bool] // key是否必须
-	_d     map[string]string                    // key对应的值
+	_scope int                                  // 允许的作用域，收或发，或者可收可发，未定义表示全部
+	_kSend *orderedmap.OrderedMap[string, bool] // 发送的key是否必须
+	_dSend map[string]string                    // 发送的key对应的值
+	_kr    []string                             // 可接受的key值
+	_dr    map[string]string                    // 可接受的key对应的值
 	_t     string                               // cq码类型
 	_s     *strings.Builder                     // cq码数据
 	_e     CQCodeEleInterface
@@ -83,11 +145,11 @@ type CQCodeEle struct {
 func (c *CQCodeEle) check() bool {
 	isPass := true
 
-	k := c._k
+	k := c._kSend
 	for ele := k.Oldest(); ele != nil; ele = ele.Next() {
 		key := ele.Key
 		isMust := ele.Value
-		if isMust && c._d[key] == "" {
+		if isMust && c._dSend[key] == "" {
 			isPass = false
 			c.errors = append(c.errors, newCQError(c._t, key+" 是必须的 "))
 		}
@@ -121,11 +183,11 @@ func (c *CQCodeEle) String() string {
 		return c._s.String()
 	}
 	w := []string{}
-	k := c._k
+	k := c._kSend
 	for ele := k.Oldest(); ele != nil; ele = ele.Next() {
 		key := ele.Key
-		if c._d[key] != "" {
-			w = append(w, key+"="+c._d[key])
+		if c._dSend[key] != "" {
+			w = append(w, key+"="+c._dSend[key])
 		}
 	}
 
@@ -153,11 +215,35 @@ func (c *CQCodeEle) Reset() {
 	c.errors = []error{}
 	c._s.Reset()
 	c._e = nil
-	c._d = map[string]string{}
+	c._dSend = map[string]string{}
 }
 
 func (c *CQCodeEle) Child() CQCodeEleInterface {
 	return c._e
+}
+
+func (c *CQCodeEle) setData(data map[string]string) bool {
+	if c._kr == nil {
+		return false
+	}
+	if len(c._kr) == 0 {
+		k := c._kSend
+		for ele := k.Oldest(); ele != nil; ele = ele.Next() {
+			key := ele.Key
+			c._kr = append(c._kr, key)
+		}
+	}
+	if c._dr == nil {
+		c._dr = map[string]string{}
+	}
+	for _, k := range c._kr {
+		if v, ok := data[k]; ok {
+			c._dr[k] = v
+		} else {
+			c._dr[k] = ""
+		}
+	}
+	return true
 }
 
 // CQAt at功能
@@ -173,8 +259,8 @@ func NewCQAt() *CQAt {
 	return &CQAt{
 		isRoot: true,
 		CQCodeEle: &CQCodeEle{
-			_scope: CQScopeReceive | CQScopeSend,
-			_k:     om,
+			_kSend: om,
+			_kr:    []string{"qq"},
 			_t:     "at",
 			_s:     &strings.Builder{},
 		},
@@ -210,12 +296,12 @@ func (c *CQAt) AllOption(name []string, userId []int64) {
 	uid := userId[:1][0]
 	n := name[:1][0]
 	if uid == 0 {
-		c._d["qq"] = "all"
-		c._d["name"] = "全体成员"
+		c._dSend["qq"] = "all"
+		c._dSend["name"] = "全体成员"
 	} else {
-		c._d["qq"] = util.IntToString(uid)
+		c._dSend["qq"] = util.IntToString(uid)
 	}
-	c._d["name"] = n
+	c._dSend["name"] = n
 
 	if len(userId) == 1 {
 		return
@@ -244,6 +330,10 @@ func (c *CQAt) unique(name []string, userId []int64) ([]string, []int64) {
 	return n, u
 }
 
+func (c *CQAt) GetQQ() int64 {
+	return util.StringToInt[int64](c._dr["qq"])
+}
+
 type CQFace struct {
 	*CQCodeEle
 }
@@ -253,8 +343,7 @@ func NewCQFace() *CQFace {
 	om.Set("id", true)
 	return &CQFace{
 		CQCodeEle: &CQCodeEle{
-			_scope: CQScopeReceive | CQScopeSend,
-			_k:     om,
+			_kSend: om,
 			_t:     "face",
 			_s:     &strings.Builder{},
 		},
@@ -274,7 +363,7 @@ func (c *CQFace) Id(id ...int64) {
 		c.errors = append(c.errors, newCQError(c._t, "id 必须在 0-221 之间"))
 		return
 	}
-	c._d["id"] = util.IntToString(i)
+	c._dSend["id"] = util.IntToString(i)
 
 	if len(id) == 1 {
 		return
@@ -282,6 +371,10 @@ func (c *CQFace) Id(id ...int64) {
 	face := NewCQFace()
 	face.Id(id[1:]...)
 	c._e = face
+}
+
+func (c *CQFace) GetId() int64 {
+	return util.StringToInt[int64](c._dr["id"])
 }
 
 // CQRecord 语音
@@ -299,8 +392,8 @@ func NewCQRecord() *CQRecord {
 	om.Set("timeout", false)
 	return &CQRecord{
 		CQCodeEle: &CQCodeEle{
-			_scope: CQScopeReceive | CQScopeSend,
-			_k:     om,
+			_kSend: om,
+			_kr:    []string{"file", "magic", "url"},
 			_t:     "record",
 			_s:     &strings.Builder{},
 		},
@@ -329,12 +422,24 @@ func (c *CQRecord) AllOption(file string, magic int, url string, cache int, prox
 		to = strconv.Itoa(timeout)
 	}
 
-	c._d["file"] = file
-	c._d["magic"] = cqCoverNumOption(magic)
-	c._d["url"] = url
-	c._d["cache"] = cqCoverNumOption(cache)
-	c._d["proxy"] = cqCoverNumOption(proxy)
-	c._d["timeout"] = to
+	c._dSend["file"] = file
+	c._dSend["magic"] = cqCoverNumOption(magic)
+	c._dSend["url"] = url
+	c._dSend["cache"] = cqCoverNumOption(cache)
+	c._dSend["proxy"] = cqCoverNumOption(proxy)
+	c._dSend["timeout"] = to
+}
+
+func (c *CQRecord) GetFile() string {
+	return c._dr["file"]
+}
+
+func (c *CQRecord) GetMagic() int {
+	return util.StringToInt[int](c._dr["magic"])
+}
+
+func (c *CQRecord) GetUrl() string {
+	return c._dr["url"]
 }
 
 // CQVideo TODO 短视频 暂未实现
@@ -367,7 +472,7 @@ type CQAnonymous struct {
 //	om.Set("ignore", false)
 //	return &CQAnonymous{
 //		CQCodeEle: &CQCodeEle{
-//			_k: om,
+//			_kSend: om,
 //			_t: "anonymous",
 //			_s: &strings.Builder{},
 //		},
@@ -387,8 +492,7 @@ func NewCQShare() *CQShare {
 	om.Set("image", false)
 	return &CQShare{
 		CQCodeEle: &CQCodeEle{
-			_scope: CQScopeReceive | CQScopeSend,
-			_k:     om,
+			_kSend: om,
 			_t:     "share",
 			_s:     &strings.Builder{},
 		},
@@ -403,10 +507,26 @@ func (c *CQShare) Link(title, url string) {
 // content 为分享内容描述，image 为分享图片封面
 func (c *CQShare) AllOption(url, title, content, image string) {
 	c.Reset()
-	c._d["url"] = url
-	c._d["title"] = title
-	c._d["content"] = content
-	c._d["image"] = image
+	c._dSend["url"] = url
+	c._dSend["title"] = title
+	c._dSend["content"] = content
+	c._dSend["image"] = image
+}
+
+func (c *CQShare) GetUrl() string {
+	return c._dr["url"]
+}
+
+func (c *CQShare) GetTitle() string {
+	return c._dr["title"]
+}
+
+func (c *CQShare) GetContent() string {
+	return c._dr["content"]
+}
+
+func (c *CQShare) GetImage() string {
+	return c._dr["image"]
 }
 
 // CQContact TODO 推荐好友/群，go-cqhttp 未实现
@@ -430,9 +550,10 @@ func NewCQMusic() *CQMusic {
 	om.Set("id", true)
 	return &CQMusic{
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "music",
-			_s: &strings.Builder{},
+			_kSend: om,
+			_kr:    nil,
+			_t:     "music",
+			_s:     &strings.Builder{},
 		},
 	}
 }
@@ -445,8 +566,8 @@ func (c *CQMusic) Share(type_ string, id string) {
 		c.errors = append(c.errors, newCQError(c._t, "type 必须为 qq、163 或 xm"))
 		return
 	}
-	c._d["type"] = type_
-	c._d["id"] = id
+	c._dSend["type"] = type_
+	c._dSend["id"] = id
 }
 
 // CQMusicCustom 自定义音乐分享
@@ -464,9 +585,10 @@ func NewCQMusicCustom() *CQMusicCustom {
 	om.Set("image", false)
 	return &CQMusicCustom{
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "music",
-			_s: &strings.Builder{},
+			_kSend: om,
+			_kr:    nil,
+			_t:     "music",
+			_s:     &strings.Builder{},
 		},
 	}
 }
@@ -479,12 +601,12 @@ func (c *CQMusicCustom) Share(url, audio, title string) {
 // AllOption 分享自定义音乐，可以设置全部参数, content 为分享内容描述，image 为分享图片封面
 func (c *CQMusicCustom) AllOption(url, audio, title, content, image string) {
 	c.Reset()
-	c._d["type"] = "custom"
-	c._d["url"] = url
-	c._d["audio"] = audio
-	c._d["title"] = title
-	c._d["content"] = content
-	c._d["image"] = image
+	c._dSend["type"] = "custom"
+	c._dSend["url"] = url
+	c._dSend["audio"] = audio
+	c._dSend["title"] = title
+	c._dSend["content"] = content
+	c._dSend["image"] = image
 }
 
 // CQImage 图片
@@ -503,16 +625,17 @@ func NewCQImage() *CQImage {
 	om.Set("c", false)
 	return &CQImage{
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "image",
-			_s: &strings.Builder{},
+			_kSend: om,
+			_kr:    []string{"file", "subType", "url"},
+			_t:     "image",
+			_s:     &strings.Builder{},
 		},
 	}
 }
 
 // File 通过文件发送图片, file 为图片文件路径 或者 网络url路径
 func (c *CQImage) File(file string) {
-	c.AllOption(file, "", "", "", -1, -1, -1)
+	c.AllOption(file, "", 0, "", -1, -1, -1)
 }
 
 // AllOption 通过文件发送图片
@@ -522,7 +645,7 @@ func (c *CQImage) File(file string) {
 // cache 为是否使用缓存，可选参数，只有 url 不为空此参数才有意义
 // id 发送秀图时的特效id, 默认为40000
 // cc 通过网络下载图片时的线程数, 默认单线程. (在资源不支持并发时会自动处理)
-func (c *CQImage) AllOption(file, imageType, subType, url string, cache, id, cc int) {
+func (c *CQImage) AllOption(file, imageType string, subType int, url string, cache, id, cc int) {
 	c.Reset()
 	if url != "" && file == "" {
 		file = uuid.Must(uuid.NewRandom()).String() // 随机赋予一个文件名
@@ -537,13 +660,25 @@ func (c *CQImage) AllOption(file, imageType, subType, url string, cache, id, cc 
 		return
 	}
 
-	c._d["file"] = file
-	c._d["type"] = imageType
-	c._d["subType"] = subType
-	c._d["url"] = url
-	c._d["cache"] = cqCoverNumOption(cache)
-	c._d["id"] = cqCoverNumOption(id)
-	c._d["c"] = cqCoverNumOption(cc)
+	c._dSend["file"] = file
+	c._dSend["type"] = imageType
+	c._dSend["subType"] = util.IntToString(subType)
+	c._dSend["url"] = url
+	c._dSend["cache"] = cqCoverNumOption(cache)
+	c._dSend["id"] = cqCoverNumOption(id)
+	c._dSend["c"] = cqCoverNumOption(cc)
+}
+
+func (c *CQImage) GetFile() string {
+	return c._dr["file"]
+}
+
+func (c *CQImage) GetSubType() int {
+	return util.StringToInt[int](c._dr["subType"])
+}
+
+func (c *CQImage) GetUrl() string {
+	return c._dr["url"]
 }
 
 // CQReply 回复
@@ -560,9 +695,10 @@ func NewCQReply() *CQReply {
 	om.Set("seq", false)
 	return &CQReply{
 		CQCodeEle: &CQCodeEle{
-			_k: om,
-			_t: "reply",
-			_s: &strings.Builder{},
+			_kSend: om,
+			_kr:    []string{"id"},
+			_t:     "reply",
+			_s:     &strings.Builder{},
 		},
 	}
 }
@@ -585,14 +721,22 @@ func (c *CQReply) AllOption(id int64, text string, qq, time, seq int64) {
 		return
 	}
 
-	c._d["id"] = util.IntToString(id)
-	c._d["text"] = text
-	c._d["qq"] = util.IntToString(qq)
-	c._d["time"] = util.IntToString(time)
-	c._d["seq"] = util.IntToString(seq)
+	c._dSend["id"] = util.IntToString(id)
+	c._dSend["text"] = text
+	c._dSend["qq"] = util.IntToString(qq)
+	c._dSend["time"] = util.IntToString(time)
+	c._dSend["seq"] = util.IntToString(seq)
+}
+
+func (c *CQReply) GetId() int64 {
+	return util.StringToInt[int64](c._dr["id"])
 }
 
 // CQRedBag 红包
-type CQRedBag struct {
-	*CQCodeEle
-}
+//type CQRedBag struct {
+//	*CQCodeEle
+//}
+//
+//func NewCQRedBag() *CQRedBag {
+//
+//}

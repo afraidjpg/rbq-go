@@ -4,11 +4,17 @@ type Context struct {
 	*MessageHandle
 }
 
+func (c *Context) init() {
+	c.decodeMessage()
+}
+
 func newContext(Recv *RecvNormalMsg) *Context {
-	return &Context{
+	ctx := &Context{
 		MessageHandle: &MessageHandle{
 			recv: Recv,
 			rep:  newReplyMessage(),
 		},
 	}
+	ctx.decodeMessage()
+	return ctx
 }

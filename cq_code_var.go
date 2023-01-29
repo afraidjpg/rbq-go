@@ -1,8 +1,10 @@
 package rbq
 
 const (
-	CQScopeReceive = 0b1  // 允许接受
-	CQScopeSend    = 0b10 // 允许发送
+	CQScopePrivate = 0b1                 // 私聊
+	CQScopeGroup   = CQScopePrivate << 1 // 群聊
+
+	CQScopeAll = CQScopePrivate | CQScopeGroup // 允许所有的消息空间
 )
 
 // CQMusic的type可选参数

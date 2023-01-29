@@ -5,6 +5,14 @@ import (
 	"testing"
 )
 
+func TestCQDecode(t *testing.T) {
+	cq := cqDecodeFromString("[CQ:video,id=123456]")
+	assert.Equal(t, cq, nil)
+
+	cq = cqDecodeFromString("[CQ:at,qq=123456]")
+	assert.Equal(t, cq.(*CQAt).GetQQ(), int64(123456))
+}
+
 func TestCQAt_To(t *testing.T) {
 	at := NewCQAt()
 	at.To(123456)

@@ -4,16 +4,44 @@ import (
 	"fmt"
 	"github.com/buger/jsonparser"
 	"log"
+	"regexp"
 	"strings"
 )
 
 type MessageHandle struct {
-	recv *RecvNormalMsg
-	rep  *ReplyMessage
+	recv    *RecvNormalMsg
+	rep     *ReplyMessage
+	cqCode  []CQCodeEleInterface
+	pureMsg string
+}
+
+// decodeMessage 解析消息，将消息中的CQ码和纯文本分离并将CQ码解析为结构体
+func (c *MessageHandle) decodeMessage() {
+	s := c.recv.Message
+	p := regexp.MustCompile(`\[CQ:.*?]`)
+	sp := p.Split(s, -1)
+	c.pureMsg = strings.Join(sp, "")
+	cq := p.FindAllString(s, -1)
+	for _, v := range cq {
+		cqCode := cqDecodeFromString(v)
+		fmt.Println(cqCode)
+		if cqCode != nil {
+			c.cqCode = append(c.cqCode, cqCode)
+		}
+	}
 }
 
 // IsGroup 判断是否是群聊消息
-func (c MessageHandle) IsGroup() bool {
+func (c *MessageHandle) GetCQCodeMsg() []CQCodeEleInterface {
+	return c.cqCode
+}
+
+func (c *MessageHandle) GetPureTextMsg() string {
+	return c.pureMsg
+}
+
+// IsGroup 判断是否是群聊消息
+func (c *MessageHandle) IsGroup() bool {
 	return c.recv.GroupId > 0
 }
 
@@ -127,7 +155,7 @@ func (c *MessageHandle) AddImage(file string) {
 // cache 为是否使用缓存，可选参数，只有 url 不为空此参数才有意义
 // id 发送秀图时的特效id, 默认为40000
 // cc 通过网络下载图片时的线程数, 默认单线程. (在资源不支持并发时会自动处理)
-func (c *MessageHandle) AddImageOpt(file, imageType, subType, url string, cache, id, cc int) {
+func (c *MessageHandle) AddImageOpt(file, imageType string, subType int, url string, cache, id, cc int) {
 	img := NewCQImage()
 	img.AllOption(file, imageType, subType, url, cache, id, cc)
 	c.rep.WriteCQCode(img)
@@ -163,6 +191,15 @@ func (c *MessageHandle) SendToPrivate(userId int64) {
 // SendToGroup 向指定群聊发送消息
 func (c *MessageHandle) SendToGroup(groupId int64) {
 	c.rep.send(0, groupId)
+}
+
+// pureText 纯文本消息
+type pureText struct {
+	text string
+}
+
+func (p *pureText) String() string {
+	return p.text
 }
 
 // RecvNormalMsg 接受的消息结构体类型
@@ -246,7 +283,6 @@ func (r *ReplyMessage) concatMessage() {
 	for _, v := range r.Message {
 		if v.cq != nil {
 			s := v.cq.String()
-			fmt.Println("cqcode:", s)
 			if v.cq.HasError() {
 				for _, e := range v.cq.Errors() {
 					log.Println("CQCode Error:", e)
