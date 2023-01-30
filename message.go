@@ -11,7 +11,7 @@ import (
 type MessageHandle struct {
 	recv    *RecvNormalMsg
 	rep     *ReplyMessage
-	cqCode  []CQCodeEleInterface
+	cqCodeM *CQCodeDecodeManager
 	pureMsg string
 }
 
@@ -26,14 +26,9 @@ func (c *MessageHandle) decodeMessage() {
 		cqCode := cqDecodeFromString(v)
 		fmt.Println(cqCode)
 		if cqCode != nil {
-			c.cqCode = append(c.cqCode, cqCode)
+			c.cqCodeM.cqCode = append(c.cqCodeM.cqCode, cqCode)
 		}
 	}
-}
-
-// IsGroup 判断是否是群聊消息
-func (c *MessageHandle) GetCQCodeMsg() []CQCodeEleInterface {
-	return c.cqCode
 }
 
 func (c *MessageHandle) GetPureTextMsg() string {
@@ -98,7 +93,7 @@ func (c *MessageHandle) AddRecord(file string) {
 }
 
 // AddRecordOpt 添加语音消息
-func (c *MessageHandle) AddRecordOpt(file string, magic int, url string, cache int, proxy int, timeout int) {
+func (c *MessageHandle) AddRecordOpt(file string, magic bool, url string, cache bool, proxy bool, timeout int) {
 	rcd := NewCQRecord()
 	rcd.AllOption(file, magic, url, cache, proxy, timeout)
 	c.rep.WriteCQCode(rcd)
@@ -155,7 +150,7 @@ func (c *MessageHandle) AddImage(file string) {
 // cache 为是否使用缓存，可选参数，只有 url 不为空此参数才有意义
 // id 发送秀图时的特效id, 默认为40000
 // cc 通过网络下载图片时的线程数, 默认单线程. (在资源不支持并发时会自动处理)
-func (c *MessageHandle) AddImageOpt(file, imageType string, subType int, url string, cache, id, cc int) {
+func (c *MessageHandle) AddImageOpt(file, imageType string, subType int, url string, cache bool, id, cc int) {
 	img := NewCQImage()
 	img.AllOption(file, imageType, subType, url, cache, id, cc)
 	c.rep.WriteCQCode(img)

@@ -3,11 +3,16 @@ package rbq
 import "C"
 import (
 	"github.com/afraidjpg/rbq-go/util"
-	"github.com/google/uuid"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
-	"strconv"
 	"strings"
 )
+
+//type CQTypeUnion interface {
+//	CQAt | CQFace | CQRecord | CQVideo |
+//		CQRps | CQDice | CQShake | CQAnonymous |
+//		CQShare | CQContact | CQLocation | CQMusic |
+//		CQMusicCustom | CQImage | CQReply
+//}
 
 func cqEscape(s string) string {
 	s = strings.ReplaceAll(s, "&", "&amp;")
@@ -23,17 +28,6 @@ func cqEscapeReverse(s string) string {
 	s = strings.ReplaceAll(s, "&#91;", "[")
 	s = strings.ReplaceAll(s, "&amp;", "&")
 	return s
-}
-
-func cqCoverNumOption(i int) string {
-	if i < 0 {
-		return ""
-	}
-	if i == 0 {
-		return "0"
-	}
-
-	return "1"
 }
 
 func cqIsUrl(s string) bool {
@@ -114,7 +108,7 @@ func cqDecodeFromString(s string) CQCodeEleInterface {
 		return nil
 	}
 
-	b := cq.setData(dataKV)
+	b := cq.decodeString(dataKV)
 
 	if b == false {
 		return nil
@@ -122,12 +116,31 @@ func cqDecodeFromString(s string) CQCodeEleInterface {
 	return cq
 }
 
+type CQCodeDecodeManager struct {
+	cqCode []CQCodeEleInterface
+}
+
+func (m *CQCodeDecodeManager) GetCQCode() []CQCodeEleInterface {
+	return m.cqCode
+}
+
+func (m *CQCodeDecodeManager) GetCQCodeByType(s string) []CQCodeEleInterface {
+	var ret []CQCodeEleInterface
+	for _, cq := range m.cqCode {
+		if cq.Type() == s {
+			ret = append(ret, cq)
+		}
+	}
+	return ret
+}
+
 type CQCodeEleInterface interface {
+	Type() string    // 获取类型
 	String() string  // 返回CQ码字符串
 	Errors() []error // 返回错误
 	HasError() bool
 	Child() CQCodeEleInterface
-	setData(data map[string]string) bool
+	decodeString(data map[string]string) bool // 从字符串decode为结构体
 }
 
 type CQCodeEle struct {
@@ -140,6 +153,10 @@ type CQCodeEle struct {
 	_s     *strings.Builder                     // cq码数据
 	_e     CQCodeEleInterface
 	errors []error
+}
+
+func (c *CQCodeEle) Type() string {
+	return c._t
 }
 
 func (c *CQCodeEle) check() bool {
@@ -222,7 +239,7 @@ func (c *CQCodeEle) Child() CQCodeEleInterface {
 	return c._e
 }
 
-func (c *CQCodeEle) setData(data map[string]string) bool {
+func (c *CQCodeEle) decodeString(data map[string]string) bool {
 	if c._kr == nil {
 		return false
 	}
@@ -402,31 +419,43 @@ func NewCQRecord() *CQRecord {
 
 // File 发送语音文件
 func (c *CQRecord) File(file string) {
-	c.AllOption(file, -1, "", -1, -1, -1)
+	c.AllOption(file, false, "", false, false, -1)
 }
 
-// AllOption 发送语音文件，可以设置全部参数，-1 为不设置，0 为 false，1 为 true
-func (c *CQRecord) AllOption(file string, magic int, url string, cache int, proxy int, timeout int) {
+// AllOption 发送语音文件
+// file 为文件路径或者网络路径或者base64，如果 url 不为空，则 file 为文件名
+// useVoiceChange 为是否使用魔法变声
+// url 为网络路径，如果不为空，则 file 为文件名，默认为空
+// useCache 为是否使用缓存
+// useProxy 为是否使用代理
+// timeout 为连接超时时间，单位秒，0为不限制
+func (c *CQRecord) AllOption(file string, useVoiceChange bool, url string, useCache, useProxy bool, timeout int) {
 	c.Reset()
-	if url == "" {
-		// 只有使用url发送时，cache 才有效
-		cache = -1
-	}
 
 	if file == "" && url != "" {
 		file = util.RandomName()
 	}
 
+	if file != "" && url == "" {
+		if !cqIsFile(file) {
+			return
+		}
+		if !cqIsUrl(file) {
+			useCache = false
+			useProxy = false
+		}
+	}
+
 	to := ""
 	if timeout > 0 {
-		to = strconv.Itoa(timeout)
+		to = util.IntToString(timeout)
 	}
 
 	c._dSend["file"] = file
-	c._dSend["magic"] = cqCoverNumOption(magic)
+	c._dSend["magic"] = util.BoolToNumberString(useVoiceChange)
 	c._dSend["url"] = url
-	c._dSend["cache"] = cqCoverNumOption(cache)
-	c._dSend["proxy"] = cqCoverNumOption(proxy)
+	c._dSend["cache"] = util.BoolToNumberString(useCache)
+	c._dSend["proxy"] = util.BoolToNumberString(useProxy)
 	c._dSend["timeout"] = to
 }
 
@@ -635,24 +664,31 @@ func NewCQImage() *CQImage {
 
 // File 通过文件发送图片, file 为图片文件路径 或者 网络url路径
 func (c *CQImage) File(file string) {
-	c.AllOption(file, "", 0, "", -1, -1, -1)
+	c.AllOption(file, "", 0, "", false, -1, -1)
 }
 
 // AllOption 通过文件发送图片
 // imageType 为图片类型，可选参数，支持 "flash"、"show" 空表示普通图片
-// subType 为图片子类型，只支持群聊 ( 咱不知道这个参数是啥 )
+// subType 为图片子类型，只支持群聊
 // url 为图片链接，可选参数，如果指定了此参数则忽略 file 参数
-// cache 为是否使用缓存，可选参数，只有 url 不为空此参数才有意义
+// useCache 为是否使用缓存
 // id 发送秀图时的特效id, 默认为40000
 // cc 通过网络下载图片时的线程数, 默认单线程. (在资源不支持并发时会自动处理)
-func (c *CQImage) AllOption(file, imageType string, subType int, url string, cache, id, cc int) {
+func (c *CQImage) AllOption(file, imageType string, subType int, url string, useCache bool, id, cc int) {
 	c.Reset()
 	if url != "" && file == "" {
-		file = uuid.Must(uuid.NewRandom()).String() // 随机赋予一个文件名
+		file = util.RandomName() // 随机赋予一个文件名
 	}
 
-	if url == "" {
-		cache = -1
+	if file != "" && url == "" {
+		if !cqIsFile(file) {
+			c.errors = append(c.errors, newCQError(c._t, "file 不是合法的文件路径"))
+			return
+		}
+
+		if !cqIsUrl(file) {
+			useCache = false
+		}
 	}
 
 	if imageType != "" && imageType != "flash" && imageType != "show" {
@@ -664,9 +700,9 @@ func (c *CQImage) AllOption(file, imageType string, subType int, url string, cac
 	c._dSend["type"] = imageType
 	c._dSend["subType"] = util.IntToString(subType)
 	c._dSend["url"] = url
-	c._dSend["cache"] = cqCoverNumOption(cache)
-	c._dSend["id"] = cqCoverNumOption(id)
-	c._dSend["c"] = cqCoverNumOption(cc)
+	c._dSend["cache"] = util.BoolToNumberString(useCache)
+	c._dSend["id"] = util.IntToString(id)
+	c._dSend["c"] = util.IntToString(cc)
 }
 
 func (c *CQImage) GetFile() string {

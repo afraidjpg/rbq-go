@@ -7,7 +7,13 @@ const (
 	CQScopeAll = CQScopePrivate | CQScopeGroup // 允许所有的消息空间
 )
 
-// CQMusic的type可选参数
+// CQRecord的 magic 可选参数
+const (
+	CQRecordMagicNormal = 0 // 语音不变声
+	CQRecordMagicChange = 1 // 语音变声
+)
+
+// CQMusic的 type 可选参数
 const (
 	CQMusicTypeQQ  = "qq"
 	CQMusicType163 = "163"
