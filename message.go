@@ -99,6 +99,14 @@ func (c *MessageHandle) AddRecordOpt(file string, magic bool, url string, cache 
 	c.rep.WriteCQCode(rcd)
 }
 
+// AddVideo 添加短视频消息
+// 不设置Opt方法了，多的一个线程数参数实际使用中没什么用
+func (c *MessageHandle) AddVideo(file, cover string) {
+	video := NewCQVideo()
+	video.File(file, cover)
+	c.rep.WriteCQCode(video)
+}
+
 // AddShare 添加分享链接
 func (c *MessageHandle) AddShare(title, url string) {
 	share := NewCQShare()

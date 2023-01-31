@@ -38,6 +38,16 @@ func cqIsFile(s string) bool {
 	return strings.HasPrefix(s, "file://") || strings.HasPrefix(s, "base64://") || cqIsUrl(s)
 }
 
+func cqIsPrefix(s string, pre string, pres ...string) bool {
+	pr := append(pres, pre)
+	for _, p := range pr {
+		if !strings.HasPrefix(s, p) {
+			return false
+		}
+	}
+	return true
+}
+
 type CQCodeError struct {
 	e string
 	t string
@@ -120,7 +130,7 @@ type CQCodeDecodeManager struct {
 	cqCode []CQCodeEleInterface
 }
 
-func (m *CQCodeDecodeManager) GetCQCode() []CQCodeEleInterface {
+func (m *CQCodeDecodeManager) GetCQCodeAll() []CQCodeEleInterface {
 	return m.cqCode
 }
 
@@ -133,6 +143,43 @@ func (m *CQCodeDecodeManager) GetCQCodeByType(s string) []CQCodeEleInterface {
 	}
 	return ret
 }
+
+//
+//func (m *CQCodeDecodeManager) GetCQAt() (ret []*CQAt) {
+//	cq := m.GetCQCodeByType("at")
+//	if len(cq) == 0 {
+//		return nil
+//	}
+//
+//	for _, c := range cq {
+//		ret = append(ret, c.(*CQAt))
+//	}
+//	return ret
+//}
+//
+//func (m *CQCodeDecodeManager) GetCQFace() (ret []*CQFace) {
+//	cq := m.GetCQCodeByType("face")
+//	if len(cq) == 0 {
+//		return nil
+//	}
+//
+//	for _, c := range cq {
+//		ret = append(ret, c.(*CQFace))
+//	}
+//	return ret
+//}
+//
+//func (m *CQCodeDecodeManager) GetCQRecord() (ret []*CQRecord) {
+//	cq := m.GetCQCodeByType("record")
+//	if len(cq) == 0 {
+//		return nil
+//	}
+//
+//	for _, c := range cq {
+//		ret = append(ret, c.(*CQRecord))
+//	}
+//	return ret
+//}
 
 type CQCodeEleInterface interface {
 	Type() string    // 获取类型
@@ -192,7 +239,7 @@ func (c *CQCodeEle) HasError() bool {
 }
 
 func (c *CQCodeEle) String() string {
-	if c.HasError() {
+	if c.HasError() || c._kSend.Len() == 0 {
 		return ""
 	}
 
@@ -261,94 +308,6 @@ func (c *CQCodeEle) decodeString(data map[string]string) bool {
 		}
 	}
 	return true
-}
-
-// CQAt at功能
-type CQAt struct {
-	isRoot bool
-	*CQCodeEle
-}
-
-func NewCQAt() *CQAt {
-	om := orderedmap.New[string, bool]()
-	om.Set("qq", true)
-	om.Set("name", false)
-	return &CQAt{
-		isRoot: true,
-		CQCodeEle: &CQCodeEle{
-			_kSend: om,
-			_kr:    []string{"qq"},
-			_t:     "at",
-			_s:     &strings.Builder{},
-		},
-	}
-}
-
-// To 设置@的QQ号, 可以多个，如果包含小于等于0的数字，则表示@全体成员，且其他@会被忽略
-func (c *CQAt) To(userId ...int64) {
-	name := make([]string, len(userId))
-	for i, v := range userId {
-		name[i] = util.IntToString(v)
-	}
-
-	c.AllOption(name, userId)
-}
-
-// AllOption 设置@的QQ号，如果不存在则显示name
-func (c *CQAt) AllOption(name []string, userId []int64) {
-	if len(name) != len(userId) {
-		c.errors = append(c.errors, newCQError(c._t, "name和userId长度不一致"))
-		return
-	}
-	c.Reset()
-	if c.isRoot {
-		name, userId = c.unique(name, userId)
-	}
-
-	if len(userId) == 0 {
-		c.errors = append(c.errors, newCQError(c._t, "必须指定一个QQ号"))
-		return
-	}
-
-	uid := userId[:1][0]
-	n := name[:1][0]
-	if uid == 0 {
-		c._dSend["qq"] = "all"
-		c._dSend["name"] = "全体成员"
-	} else {
-		c._dSend["qq"] = util.IntToString(uid)
-	}
-	c._dSend["name"] = n
-
-	if len(userId) == 1 {
-		return
-	}
-	at := NewCQAt()
-	at.isRoot = false
-	at.AllOption(name[1:], userId[1:])
-	c._e = at
-}
-
-func (c *CQAt) unique(name []string, userId []int64) ([]string, []int64) {
-	ext := make(map[int64]bool)
-	u := make([]int64, 0, len(userId))
-	n := make([]string, 0, len(name))
-	for i, v := range userId {
-		if v <= 0 {
-			u = []int64{0}
-			n = []string{"全体成员"}
-			break
-		}
-		if b := ext[v]; !b {
-			u = append(u, v)
-			n = append(n, name[i])
-		}
-	}
-	return n, u
-}
-
-func (c *CQAt) GetQQ() int64 {
-	return util.StringToInt[int64](c._dr["qq"])
 }
 
 type CQFace struct {
@@ -471,9 +430,151 @@ func (c *CQRecord) GetUrl() string {
 	return c._dr["url"]
 }
 
-// CQVideo TODO 短视频 暂未实现
+// CQVideo 短视频
 type CQVideo struct {
 	*CQCodeEle
+}
+
+func NewCQVideo() *CQVideo {
+	om := orderedmap.New[string, bool]()
+	om.Set("file", true)
+	om.Set("cover", true)
+	om.Set("c", false)
+	return &CQVideo{
+		CQCodeEle: &CQCodeEle{
+			_kSend: om,
+			_kr:    []string{"file", "cover"},
+			_t:     "video",
+			_s:     &strings.Builder{},
+		},
+	}
+}
+
+// File 发送短视频文件
+func (c *CQVideo) File(file, cover string) {
+	c.AllOption(file, cover, 2)
+}
+
+// AllOption 发送短视频文件
+// file 为视频文件，支持文件路径和网络路径
+// cover 为封面文件路径，支持文件路径和网络路径和base64，只支持jpg格式
+// c 下载线程数
+func (c *CQVideo) AllOption(file, cover string, cc int) {
+	c.Reset()
+	if file == "" {
+		c.errors = append(c.errors, newCQError(c._t, "必须指定一个文件"))
+		return
+	}
+	if !cqIsPrefix(file, "http://", "https://", "file://") {
+		c.errors = append(c.errors, newCQError(c._t, "file 必须是一个网络路径或者文件路径"))
+		return
+	}
+	if cover != "" && !cqIsFile(cover) {
+		c.errors = append(c.errors, newCQError(c._t, "cover 必须是一个文件路径"))
+		return
+	}
+	if cc < 2 || cc > 3 {
+		cc = 2 // 默认2
+	}
+	c._dSend["file"] = file
+	c._dSend["cover"] = cover
+	c._dSend["c"] = util.IntToString(cc)
+}
+
+func (c *CQVideo) GetFile() string {
+	return c._dr["file"]
+}
+
+func (c *CQVideo) GetCover() string {
+	return c._dr["cover"]
+}
+
+// CQAt at功能
+type CQAt struct {
+	isRoot bool
+	*CQCodeEle
+}
+
+func NewCQAt() *CQAt {
+	om := orderedmap.New[string, bool]()
+	om.Set("qq", true)
+	om.Set("name", false)
+	return &CQAt{
+		isRoot: true,
+		CQCodeEle: &CQCodeEle{
+			_kSend: om,
+			_kr:    []string{"qq"},
+			_t:     "at",
+			_s:     &strings.Builder{},
+		},
+	}
+}
+
+// To 设置@的QQ号, 可以多个，如果包含小于等于0的数字，则表示@全体成员，且其他@会被忽略
+func (c *CQAt) To(userId ...int64) {
+	name := make([]string, len(userId))
+	for i, v := range userId {
+		name[i] = util.IntToString(v)
+	}
+
+	c.AllOption(name, userId)
+}
+
+// AllOption 设置@的QQ号，如果不存在则显示name
+func (c *CQAt) AllOption(name []string, userId []int64) {
+	if len(name) != len(userId) {
+		c.errors = append(c.errors, newCQError(c._t, "name和userId长度不一致"))
+		return
+	}
+	c.Reset()
+	if c.isRoot {
+		name, userId = c.unique(name, userId)
+	}
+
+	if len(userId) == 0 {
+		c.errors = append(c.errors, newCQError(c._t, "必须指定一个QQ号"))
+		return
+	}
+
+	uid := userId[:1][0]
+	n := name[:1][0]
+	if uid == 0 {
+		c._dSend["qq"] = "all"
+		c._dSend["name"] = "全体成员"
+	} else {
+		c._dSend["qq"] = util.IntToString(uid)
+	}
+	c._dSend["name"] = n
+
+	if len(userId) == 1 {
+		return
+	}
+	at := NewCQAt()
+	at.isRoot = false
+	at.AllOption(name[1:], userId[1:])
+	c._e = at
+}
+
+func (c *CQAt) unique(name []string, userId []int64) ([]string, []int64) {
+	ext := make(map[int64]bool)
+	u := make([]int64, 0, len(userId))
+	n := make([]string, 0, len(name))
+	for i, v := range userId {
+		if v <= 0 {
+			u = []int64{0}
+			n = []string{"全体成员"}
+			break
+		}
+		if b := ext[v]; !b {
+			u = append(u, v)
+			n = append(n, name[i])
+		}
+	}
+	return n, u
+}
+
+func (c *CQAt) GetQQ() int64 {
+	return util.StringToInt[int64](c._dr["qq"])
 }
 
 // CQRps TODO 猜拳 rps = rock-paper-scissors, go-cqhttp 未实现
@@ -769,10 +870,23 @@ func (c *CQReply) GetId() int64 {
 }
 
 // CQRedBag 红包
-//type CQRedBag struct {
-//	*CQCodeEle
-//}
-//
-//func NewCQRedBag() *CQRedBag {
-//
-//}
+type CQRedBag struct {
+	*CQCodeEle
+}
+
+func NewCQRedBag() *CQRedBag {
+	om := orderedmap.New[string, bool]()
+	return &CQRedBag{
+		CQCodeEle: &CQCodeEle{
+			_kSend: om,
+			_kr:    []string{"title"},
+			_t:     "redbag",
+			_s:     &strings.Builder{},
+		},
+	}
+}
+
+// GetTitle 获取红包标题
+func (c *CQRedBag) GetTitle() string {
+	return c._dr["title"]
+}
