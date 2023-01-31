@@ -126,24 +126,6 @@ func cqDecodeFromString(s string) CQCodeEleInterface {
 	return cq
 }
 
-type CQCodeDecodeManager struct {
-	cqCode []CQCodeEleInterface
-}
-
-func (m *CQCodeDecodeManager) GetCQCodeAll() []CQCodeEleInterface {
-	return m.cqCode
-}
-
-func (m *CQCodeDecodeManager) GetCQCodeByType(s string) []CQCodeEleInterface {
-	var ret []CQCodeEleInterface
-	for _, cq := range m.cqCode {
-		if cq.Type() == s {
-			ret = append(ret, cq)
-		}
-	}
-	return ret
-}
-
 //
 //func (m *CQCodeDecodeManager) GetCQAt() (ret []*CQAt) {
 //	cq := m.GetCQCodeByType("at")
@@ -207,15 +189,19 @@ func (c *CQCodeEle) Type() string {
 }
 
 func (c *CQCodeEle) check() bool {
-	isPass := true
+	if c._kSend == nil || c._kSend.Len() == 0 {
+		c.errors = append(c.errors, newCQError(c._t, "不支持发送"))
+		return false
+	}
 
+	isPass := true
 	k := c._kSend
 	for ele := k.Oldest(); ele != nil; ele = ele.Next() {
 		key := ele.Key
 		isMust := ele.Value
 		if isMust && c._dSend[key] == "" {
 			isPass = false
-			c.errors = append(c.errors, newCQError(c._t, key+" 是必须的 "))
+			c.errors = append(c.errors, newCQError(c._t, key+" 是必须的"))
 		}
 	}
 	return isPass
@@ -239,7 +225,7 @@ func (c *CQCodeEle) HasError() bool {
 }
 
 func (c *CQCodeEle) String() string {
-	if c.HasError() || c._kSend.Len() == 0 {
+	if c.HasError() {
 		return ""
 	}
 
@@ -681,7 +667,7 @@ func NewCQMusic() *CQMusic {
 	return &CQMusic{
 		CQCodeEle: &CQCodeEle{
 			_kSend: om,
-			_kr:    nil,
+			_kr:    nil, // 不允许接受该类型
 			_t:     "music",
 			_s:     &strings.Builder{},
 		},
@@ -716,7 +702,7 @@ func NewCQMusicCustom() *CQMusicCustom {
 	return &CQMusicCustom{
 		CQCodeEle: &CQCodeEle{
 			_kSend: om,
-			_kr:    nil,
+			_kr:    nil, // 不允许接受该类型
 			_t:     "music",
 			_s:     &strings.Builder{},
 		},
@@ -853,9 +839,12 @@ func (c *CQReply) Id(id int64) {
 // seq 起始消息序号, 可通过 get_msg 获得，可选
 func (c *CQReply) AllOption(id int64, text string, qq, time, seq int64) {
 	c.Reset()
-	if text != "" && qq <= 0 {
-		c.errors = append(c.errors, newCQError(c._t, "text不为空时，qq必填"))
+	if text == "" && qq <= 0 {
+		c.errors = append(c.errors, newCQError(c._t, "text为空时，qq必填"))
 		return
+	}
+	if text != "" {
+		id = 0
 	}
 
 	c._dSend["id"] = util.IntToString(id)
@@ -875,10 +864,9 @@ type CQRedBag struct {
 }
 
 func NewCQRedBag() *CQRedBag {
-	om := orderedmap.New[string, bool]()
 	return &CQRedBag{
 		CQCodeEle: &CQCodeEle{
-			_kSend: om,
+			_kSend: nil,
 			_kr:    []string{"title"},
 			_t:     "redbag",
 			_s:     &strings.Builder{},

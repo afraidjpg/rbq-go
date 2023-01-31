@@ -11,10 +11,11 @@ func (c *Context) init() {
 func newContext(Recv *RecvNormalMsg) *Context {
 	ctx := &Context{
 		MessageHandle: &MessageHandle{
-			recv: Recv,
-			rep:  newReplyMessage(),
+			recv:   Recv,
+			rep:    newReplyMessage(),
+			cqCode: make([]CQCodeEleInterface, 0),
 		},
 	}
-	ctx.decodeMessage()
+	ctx.init()
 	return ctx
 }

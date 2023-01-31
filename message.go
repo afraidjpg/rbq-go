@@ -11,7 +11,7 @@ import (
 type MessageHandle struct {
 	recv    *RecvNormalMsg
 	rep     *ReplyMessage
-	cqCodeM *CQCodeDecodeManager
+	cqCode  []CQCodeEleInterface
 	pureMsg string
 }
 
@@ -24,11 +24,14 @@ func (c *MessageHandle) decodeMessage() {
 	cq := p.FindAllString(s, -1)
 	for _, v := range cq {
 		cqCode := cqDecodeFromString(v)
-		fmt.Println(cqCode)
 		if cqCode != nil {
-			c.cqCodeM.cqCode = append(c.cqCodeM.cqCode, cqCode)
+			c.cqCode = append(c.cqCode, cqCode)
 		}
 	}
+}
+
+func (c *MessageHandle) GetAllCQCode() []CQCodeEleInterface {
+	return c.cqCode
 }
 
 func (c *MessageHandle) GetPureTextMsg() string {
@@ -164,8 +167,12 @@ func (c *MessageHandle) AddImageOpt(file, imageType string, subType int, url str
 	c.rep.WriteCQCode(img)
 }
 
-// AddReply 添加回复消息
+// AddReply 添加回复消息，如果id为0则回复当前消息
 func (c *MessageHandle) AddReply(id int64) {
+	if id <= 0 {
+		id = c.recv.MessageId
+	}
+	fmt.Println("reply id:", id)
 	reply := NewCQReply()
 	reply.Id(id)
 	c.rep.WriteCQCode(reply)
@@ -173,6 +180,10 @@ func (c *MessageHandle) AddReply(id int64) {
 
 // AddReplyOpt 添加回复消息
 func (c *MessageHandle) AddReplyOpt(id int64, text string, qq, time, seq int64) {
+	if id <= 0 {
+		id = c.recv.MessageId
+	}
+	fmt.Println("reply id:", id)
 	reply := NewCQReply()
 	reply.AllOption(id, text, qq, time, seq)
 	c.rep.WriteCQCode(reply)
@@ -276,6 +287,7 @@ func newReplyMessage() *ReplyMessage {
 func (r *ReplyMessage) send(userID, groupID int64) {
 	r.concatMessage()
 	rep := r.Data.String()
+	fmt.Println("reply message:", rep)
 	if rep == "" {
 		return // 没有回复内容
 	}
