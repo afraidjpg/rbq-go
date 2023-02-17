@@ -13,7 +13,8 @@ func newContext(Recv *RecvNormalMsg) *Context {
 		MessageHandle: &MessageHandle{
 			recv:   Recv,
 			rep:    newReplyMessage(),
-			cqCode: make([]CQCodeEleInterface, 0),
+			CQRecv: newCQRecv(),
+			CQSend: newCQSend(),
 		},
 	}
 	ctx.init()

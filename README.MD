@@ -26,9 +26,10 @@ go get -u github.com/afraidjpg/rbq-go
 
 ```go
 package main
+
 import (
-	"github.com/afraidjpg/rbq-go"
 	"fmt"
+	"github.com/afraidjpg/rbq-go"
 )
 
 // YourPlugin 这是你的插件本体
@@ -36,41 +37,41 @@ func YourPlugin(ctx *rbq.Context) {
 	msg := ctx.GetRecvMessage()
 	if msg == "hello world" {
 		ctx.Reply("welcome")
-		return 
-    }
-	
-    ctx.Reply("test") // 发送 "test"
-    
-    ctx.AddMsg("boo") // 添加消息但不立刻发送
-    ctx.AddMsg("bar")
-    ctx.Reply() // 发送 "boobar"
+		return
+	}
 
-    ctx.AddMsg("hello") // 添加消息但不立刻发送
-    ctx.AddMsg(" ")
-    ctx.Reply("world") // 发送 "hello world"
+	ctx.Reply("test") // 发送 "test"
+
+	ctx.AddText("boo") // 添加消息但不立刻发送
+	ctx.AddText("bar")
+	ctx.Reply() // 发送 "boobar"
+
+	ctx.AddText("hello") // 添加消息但不立刻发送
+	ctx.AddText(" ")
+	ctx.Reply("world") // 发送 "hello world"
 }
 
 // main 方法
 func main() {
-    bot := rbq.NewApp() // 新建app
-    pld := bot.GetPluginLoader() // 获取插件装载器
-    // 添加单个插件
-    pld.BindPlugin(YourPlugin, nil)
+	bot := rbq.NewApp()          // 新建app
+	pld := bot.GetPluginLoader() // 获取插件装载器
+	// 添加单个插件
+	pld.BindPlugin(YourPlugin, nil)
 
-    // 创建一个插件组，并向插件组中加入插件
-    gp := pld.Group("gp", nil)
-    gp.BindPlugin(YourPlugin, nil)
-    
-    // 添加插件中发生的错误
-    errs := gp.GetErrors()
-    if len(errs) > 0 {
-        for _, err := range errs {
-            fmt.Println(err)
+	// 创建一个插件组，并向插件组中加入插件
+	gp := pld.Group("gp", nil)
+	gp.BindPlugin(YourPlugin, nil)
+
+	// 添加插件中发生的错误
+	errs := gp.GetErrors()
+	if len(errs) > 0 {
+		for _, err := range errs {
+			fmt.Println(err)
 			return
-        }
-    }
-    // 不给参数，自动设置为 127.0.0.1:8080（go-cqhttp的默认正向websocket端口）
-    bot.Run("") 
+		}
+	}
+	// 不给参数，自动设置为 127.0.0.1:8080（go-cqhttp的默认正向websocket端口）
+	bot.Run("")
 }
 ```
 
@@ -84,36 +85,40 @@ func main() {
 <h2>插件选项</h2>
 
 `BindPlugin`的第二个参数是一个`*PluginOption`类型的变量，可以为插件设置一些选项，例如：
+
 ```go
 package main
 
-import "github.com/afraidjpg/rbq-go"
+import (
+	"fmt"
+	"github.com/afraidjpg/rbq-go"
+)
 
 var SimpleOption = &rbq.PluginOption{
-    Name: "example_reply", // 插件名称
-    FilterFunc: []rbq.PluginFilterFunc{
-        func(ctx *rbq.Context) bool {
-            return ctx.IsGroup() // 只回复群消息
-        },
-    },
-    RecoverFunc: func(ctx *rbq.Context, err any) {
-        fmt.Println("插件运行错误:", err)
-    }, // 当插件运行错误的时候执行的逻辑
+	Name: "example_reply", // 插件名称
+	FilterFunc: []rbq.PluginFilterFunc{
+		func(ctx *rbq.Context) bool {
+			return ctx.IsGroup() // 只回复群消息
+		},
+	},
+	RecoverFunc: func(ctx *rbq.Context, err any) {
+		fmt.Println("插件运行错误:", err)
+	}, // 当插件运行错误的时候执行的逻辑
 }
 
 func YourPlugin(ctx *rbq.Context) {
-    ctx.Reply("test")
+	ctx.Reply("test")
 }
 
 // 然后在绑定插件的时候使用
 func main() {
-    bot := rbq.NewApp()
-    pld := bot.GetPluginLoader()
-    pld.BindPlugin(YourPlugin, SimpleOption) // 该插件将应用上述设置
+	bot := rbq.NewApp()
+	pld := bot.GetPluginLoader()
+	pld.BindPlugin(YourPlugin, SimpleOption) // 该插件将应用上述设置
 
-    gp := pld.Group("gp", &rbq.PluginGroupOption{SimpleOption})
-    gp.BindPlugin(YourPlugin, nil) // gp组内的插件选项如果未设置，则会直接应用gp组的选项
-    // ...
+	gp := pld.Group("gp", &rbq.PluginGroupOption{SimpleOption})
+	gp.BindPlugin(YourPlugin, nil) // gp组内的插件选项如果未设置，则会直接应用gp组的选项
+	// ...
 }
 
 ```

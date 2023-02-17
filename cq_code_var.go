@@ -23,3 +23,20 @@ const (
 	CQImageIDLove    = 40004 // 爱你
 	CQImageIDSeek    = 40005 // 征友
 )
+
+const (
+	CQGiftTypeWink           = iota // 甜 Wink
+	CQGiftTypeCola                  // 肥宅快乐水
+	CQGiftTypeLuckyBracelet         // 幸运手链
+	CQGiftTypeCappuccino            // 卡布奇诺
+	CQGiftTypeCatWatch              // 猫咪手表
+	CQGiftTypeGlove                 // 绒绒手套
+	CQGiftTypeRainbowCandy          // 彩虹糖果
+	CQGiftTypeStrong                // 坚强
+	CQGiftTypeConfession            // 告白话筒
+	CQGiftTypeHoldHand              // 牵你的手
+	CQGiftTypeCuteCat               // 可爱猫咪
+	CQGiftTypeMysteriousMask        // 神秘面具
+	CQGiftTypeBusy                  // 我超忙的
+	CQGiftTypeLoveMask              // 爱心口罩
+)
