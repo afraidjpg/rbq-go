@@ -122,7 +122,33 @@ func main() {
 
 ```
 
-<h2>关于CQ码</h2>
+<h2>CQ码</h2>
+
+如何获取CQ码与发送CQ码：
+
+```go
+
+func YourPlugin(ctx *rbq.Context) {
+    // 获取该条消息中的所有CQ码，返回类型为 []CQCodeInterface，需要手动转换类型
+    cq := ctx.GetAllCQCode() 
+	
+	// 获取CQ码的方式为 ctx.GetCQX(), 其中X为CQ码的类型，例如 ctx.GetCQAt() 获取at码
+    ats := ctx.GetCQAt() // 返回 []*CQAt，获取该条消息中的所有at
+    for _, at := range ats {
+        fmt.Println(at.GetQQ()) // 获取at的qq号
+    }
+	
+    // 发送CQ码的方式为 ctx.AddCQX(), X代表CQ码类型，且首字母大写
+    // 如 At、Image、Face...
+    ctx.AddCQAt(1234567)
+    ctx.AddCQFace(22)
+    // ...
+	
+    ctx.Reply() // 发送消息
+}
+
+```
+
 
 可CQ码的支持与 go-cqhttp 同步，可以[点击这里](https://github.com/Mrs4s/go-cqhttp)查看README中对CQ码的描述
 
