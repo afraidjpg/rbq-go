@@ -132,7 +132,7 @@ func main() {
 | record    | 完成  | ⚠️可能存在问题，具体查看该[issue](https://github.com/Mrs4s/go-cqhttp/issues/1749) |
 | video     | 完成  | 如果没有后缀，通常为mp4                                                         |
 | at        | 完成  |                                                                       |
-| share     | 完成  | ⚠️对群发送/接受时会失败，发送时提示被风控，接收则是无反应，以及在手机上可以显示为卡片，mac客户端只有单个链接             |
+| share     | 完成  | ⚠️对群时发送/接受时会失败                                                        |
 | music     | 完成  |                                                                       |
 | reply     | 完成  |                                                                       |
 | forward   | 未实现 |                                                                       |
