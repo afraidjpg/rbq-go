@@ -2,6 +2,7 @@ package rbq
 
 import (
 	"github.com/buger/jsonparser"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -76,6 +77,38 @@ func (cqr CQRecv) GetCQVideo() *CQVideo {
 	return nil
 }
 
+// GetCQShare 获取分享链接
+func (cqr CQRecv) GetCQShare() *CQShare {
+	r := coverCQIToSepType[*CQShare](cqr.GetCQCodeByType("share"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
+// GetCQLocation TODO 获取位置分享，go-cqhttp 暂未实现
+//func (cpr CQRecv) GetCQLocation() *CQLocation {
+//	r := coverCQIToSepType[*CQLocation](cpr.GetCQCodeByType("location"))
+//	if len(r) > 0 {
+//		return r[0]
+//	}
+//	return nil
+//}
+
+// GetCQImage 获取图片
+func (cqr CQRecv) GetCQImage() []*CQImage {
+	return coverCQIToSepType[*CQImage](cqr.GetCQCodeByType("image"))
+}
+
+// GetCQReply 获取回复消息
+func (cqr CQRecv) GetCQReply() *CQReply {
+	r := coverCQIToSepType[*CQReply](cqr.GetCQCodeByType("reply"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
 type CQSend struct {
 	cq  []*CQCode
 	cqm map[string][]*CQCode
@@ -91,6 +124,12 @@ func newCQSend() *CQSend {
 
 // AddCQCode 添加CQ码
 func (cqs *CQSend) AddCQCode(cq *CQCode) *CQSend {
+	if cq == nil {
+		return cqs
+	}
+	if cq.CQType() == "reply" && len(cqs.cqm["reply"]) > 0 {
+		return cqs
+	}
 	cqs.cq = append(cqs.cq, cq)
 	cqs.cqm[cq.CQType()] = append(cqs.cqm[cq.CQType()], cq)
 	return cqs
@@ -112,22 +151,22 @@ func (cqs *CQSend) AddCQFace(faceId ...int) *CQSend {
 // AddCQRecord 发送语音消息
 // file 语音文件路径，支持 http://，https://，base64://，file://协议
 func (cqs *CQSend) AddCQRecord(file string) *CQSend {
-	r, e := NewCQRecord(file, false, true, true, 0)
+	c, e := NewCQRecord(file, false, true, true, 0)
 	if e != nil {
 		cqs.err = append(cqs.err, e)
 	}
-	return cqs.AddCQCode(r)
+	return cqs.AddCQCode(c)
 }
 
 // AddCQVideo 发送短视频消息
 // file 视频文件路径，支持 http://，https://，base64://，file://协议
 // cover 封面文件路径，支持 http://，https://，base64://，file://协议，图片必须是jpg格式
 func (cqs *CQSend) AddCQVideo(file, cover string) *CQSend {
-	r, e := NewCQVideo(file, cover, 1)
+	c, e := NewCQVideo(file, cover, 1)
 	if e != nil {
 		cqs.err = append(cqs.err, e)
 	}
-	return cqs.AddCQCode(r)
+	return cqs.AddCQCode(c)
 }
 
 // AddCQAt at某人，传入0表示at全体成员
@@ -136,6 +175,56 @@ func (cqs *CQSend) AddCQAt(qq ...int64) *CQSend {
 		cqs.AddCQCode(NewCQAt(id, ""))
 	}
 	return cqs
+}
+
+// AddCQShare 发送分享链接
+func (cqs *CQSend) AddCQShare(url, title, content, image string) *CQSend {
+	c, e := NewCQShare(url, title, content, image)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQLocation TODO 发送位置，go-cqhttp 暂未实现
+//func (cqs *CQSend) AddCQLocation(lat, lon float64, title, content string) *CQSend {
+//r, e := NewCQLocation(lat, lon, title, content)
+//if e != nil {
+//	cqs.err = append(cqs.err, e)
+//}
+//return cqs.AddCQCode(r)
+//}
+
+// AddCQMusic 发送音乐分享
+func (cqs *CQSend) AddCQMusic(type_ string, id int64) *CQSend {
+	c, e := NewCQMusic(type_, id, "", "", "", "", "")
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQMusicCustom 发送自定义音乐分享
+func (cqs *CQSend) AddCQMusicCustom(url, audio, title, content, image string) *CQSend {
+	c, e := NewCQMusic(CQMusicTypeCustom, 0, url, audio, title, content, image)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddImage 发送图片
+func (cqs *CQSend) AddImage(file string) *CQSend {
+	c, e := NewCQImage(file, "", 0, false, 0, 2)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQReply 回复消息
+func (cqs *CQSend) AddCQReply(id int64) *CQSend {
+	return cqs.AddCQCode(NewCQReply(id))
 }
 
 type MessageHandle struct {
@@ -178,9 +267,13 @@ func (c *MessageHandle) GetGroupNo() int64 {
 	return int64(0)
 }
 
-// GetRecvMessage 获取接收到的消息
-func (c *MessageHandle) GetRecvMessage() string {
+// GetMessage 获取接收到的消息
+func (c *MessageHandle) GetMessage() string {
 	return c.recv.Message
+}
+
+func (c *MessageHandle) GetMessageId() int64 {
+	return c.recv.MessageId
 }
 
 // AddReply 重写添加CQReply方法，id 如果小于等于 0，将会自动获取当前消息的id
@@ -268,6 +361,9 @@ func newReplyMessage() *ReplyMessage {
 }
 
 func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) {
+	for _, err := range cqs.err {
+		log.Println(err)
+	}
 	msg, cards, forward := r.tidyCQCode(cqs.cqm)
 
 	if msg != "" {
@@ -275,7 +371,7 @@ func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) {
 	}
 
 	for _, card := range cards {
-		r.resp.pushMsg(userID, groupID, card, true)
+		r.resp.pushMsg(userID, groupID, card, false)
 	}
 
 	// 合并转发只能对群聊发送， go-cqhttp 未提供相关接口
@@ -290,9 +386,9 @@ func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) {
 }
 
 func (r *ReplyMessage) tidyCQCode(cqm map[string][]*CQCode) (string, []string, []*CQCode) {
-	var msg string            // 可以合并一次性发送的cq码
-	var card []string         // 一次发送只能有一个的cq码
-	var forward = []*CQCode{} // 合并转发，该消息类型比较特殊
+	var msg string        // 可以合并一次性发送的cq码
+	var card []string     // 一次发送只能有一个的cq码
+	var forward []*CQCode // 合并转发，该消息类型比较特殊
 
 	sb := &strings.Builder{}
 	for t, cqs := range cqm {

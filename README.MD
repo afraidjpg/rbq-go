@@ -34,7 +34,7 @@ import (
 
 // YourPlugin 这是你的插件本体
 func YourPlugin(ctx *rbq.Context) {
-	msg := ctx.GetRecvMessage()
+	msg := ctx.GetMessage()
 	if msg == "hello world" {
 		ctx.Reply("welcome")
 		return
@@ -81,7 +81,6 @@ func main() {
 - 启动 `go-cqhttp` 并使用选择正向websocket连接
 - 运行你的程序
 
-
 <h2>插件选项</h2>
 
 `BindPlugin`的第二个参数是一个`*PluginOption`类型的变量，可以为插件设置一些选项，例如：
@@ -123,3 +122,25 @@ func main() {
 
 ```
 
+<h2>关于CQ码</h2>
+
+可CQ码的支持与 go-cqhttp 同步，可以[点击这里](https://github.com/Mrs4s/go-cqhttp)查看README中对CQ码的描述
+
+| CQ码       | 说明  | 备注                                                                    |
+|-----------|-----|-----------------------------------------------------------------------|
+| face      | 完成  |                                                                       |
+| record    | 完成  | ⚠️可能存在问题，具体查看该[issue](https://github.com/Mrs4s/go-cqhttp/issues/1749) |
+| video     | 完成  | 如果没有后缀，通常为mp4                                                         |
+| at        | 完成  |                                                                       |
+| share     | 完成  | ⚠️对群发送/接受时会失败，发送时提示被风控，接收则是无反应，以及在手机上可以显示为卡片，mac客户端只有单个链接             |
+| music     | 完成  |                                                                       |
+| reply     | 完成  |                                                                       |
+| forward   | 未实现 |                                                                       |
+| node      | 未实现 |                                                                       |
+| xml       | 未实现 |                                                                       |
+| json      | 未实现 |                                                                       |
+| image     | 完成  |                                                                       |
+| redbag    | 未实现 |                                                                       |
+| poke      | 未实现 |                                                                       |
+| cardimage | 未实现 |                                                                       |
+| tts       | 未实现 |                                                                       |

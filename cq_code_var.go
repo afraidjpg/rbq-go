@@ -9,9 +9,30 @@ const (
 
 // CQMusic的 type 可选参数
 const (
-	CQMusicTypeQQ  = "qq"
-	CQMusicType163 = "163"
-	CQMusicTypeXM  = "xm"
+	CQMusicTypeQQ     = "qq"     // qq音乐
+	CQMusicType163    = "163"    // 网易云音乐
+	CQMusicTypeXM     = "xm"     // 虾米音乐
+	CQMusicTypeCustom = "custom" // 自定义
+)
+
+// CQImage的 type 可选参数
+const (
+	CQImageTypeFlash = "flash" // 动图
+	CQImageTypeShow  = "show"  // 秀图
+)
+
+// CQImage的 subType 可选参数
+const (
+	CQImageSubTypeNormal    = iota // 正常图片
+	CQImageSubTypeEmoji            // 表情包, 在客户端会被分类到表情包图片并缩放显示
+	CQImageSubTypeHot              // 热图
+	CQImageSubTypeDou              // 斗图
+	CQImageSubTypeZhi              // 智图?
+	CQImageSubTypeTie              // 贴图
+	CQImageSubTypeSelf             // 自拍
+	CQImageSubTypeTieAd            // 贴图广告?
+	CQImageSubTypeUnknown          // 有待测试
+	CQImageSubTypeHotSearch        // 热搜图
 )
 
 // CQImage的ID可选参数
