@@ -670,6 +670,27 @@ func (r CQReply) GetId() int64 {
 	return r.GetInt64("id")
 }
 
+// NewCQRedbag 新建一个红包的CQ码
+// 红包不支持发送
+//func NewCQRedbag(title string) *CQCode {
+//	return newCQCode("redbag", map[string]any{"title": title})
+//}
+
+// CQRedBag 红包
+type CQRedBag struct {
+	*CQCode
+}
+
+// GetTitle 获取红包标题
+func (r CQRedBag) GetTitle() string {
+	return r.GetString("title")
+}
+
+// NewCQPoke 新建一个戳一戳的CQ码
+func NewCQPoke(qq int64) *CQCode {
+	return newCQCode("poke", map[string]any{"qq": qq})
+}
+
 // CQForward 转发
 type CQForward struct {
 	*CQCode

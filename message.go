@@ -1,6 +1,7 @@
 package rbq
 
 import (
+	"fmt"
 	"github.com/buger/jsonparser"
 	"log"
 	"regexp"
@@ -103,6 +104,15 @@ func (cqr CQRecv) GetCQImage() []*CQImage {
 // GetCQReply 获取回复消息
 func (cqr CQRecv) GetCQReply() *CQReply {
 	r := coverCQIToSepType[*CQReply](cqr.GetCQCodeByType("reply"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
+// GetCQRedBag 获取红包
+func (cqr CQRecv) GetCQRedBag() *CQRedBag {
+	r := coverCQIToSepType[*CQRedBag](cqr.GetCQCodeByType("redbag"))
 	if len(r) > 0 {
 		return r[0]
 	}
@@ -227,6 +237,12 @@ func (cqs *CQSend) AddCQReply(id int64) *CQSend {
 	return cqs.AddCQCode(NewCQReply(id))
 }
 
+// AddCQPoke 戳一戳
+func (cqs *CQSend) AddCQPoke(qq int64) *CQSend {
+	c := NewCQPoke(qq)
+	return cqs.AddCQCode(c)
+}
+
 type MessageHandle struct {
 	*CQRecv
 	*CQSend
@@ -336,6 +352,8 @@ func parseMessageBytes(recv []byte) *RecvNormalMsg {
 		// 获取不到信息类型，直接return掉
 		return nil
 	}
+
+	fmt.Println(postType)
 
 	if postType == "message" {
 		var recvMsg *RecvNormalMsg
