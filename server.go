@@ -6,11 +6,16 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"time"
 )
 
+var wsRetryCount = 0
 var conn *websocket.Conn
+var wsHost = ""
+var wsPort = ""
 
 func listenCQHTTP(cqAddr string) {
+
 	if cqAddr == "" {
 		cqAddr = "127.0.0.1:8080"
 	}
@@ -22,7 +27,10 @@ func listenCQHTTP(cqAddr string) {
 	if err != nil {
 		log.Fatal("url.Parse:", err)
 	}
-	conn = connectToWS(u.Hostname(), u.Port())
+	wsHost = u.Hostname()
+	wsPort = u.Port()
+	conn = connectToWS(wsHost, wsPort)
+	go listenConn()
 	go recvDataFromCQHTTP()
 }
 
@@ -31,9 +39,17 @@ func connectToWS(h string, p string) *websocket.Conn {
 	u := url.URL{Scheme: "ws", Host: host, Path: ""}
 
 	cc, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+
 	if err != nil {
-		log.Fatal("dial:", err)
+		if wsRetryCount > 50 {
+			log.Fatal("重连次数过多，已退出")
+		}
+		log.Println("连接失败:", err, ", 5秒后重试...")
+		time.Sleep(5 * time.Second)
+		wsRetryCount++
+		return connectToWS(h, p)
 	}
+	wsRetryCount = 0
 	fmt.Printf("websocket server 已连接：%s\n", u.String())
 	return cc
 }
@@ -45,7 +61,7 @@ func recvDataFromCQHTTP() {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
-			return
+			continue
 		}
 		recvChan <- message
 	}
@@ -59,5 +75,16 @@ func sendDataToCQHTTP(data []byte) {
 	if err != nil {
 		log.Println("write:", err)
 		return
+	}
+}
+
+func listenConn() {
+	for {
+		err := conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+		if err != nil {
+			log.Println("连接已断开，正在重连...")
+			conn = connectToWS(wsHost, wsPort)
+		}
+		time.Sleep(5 * time.Second)
 	}
 }

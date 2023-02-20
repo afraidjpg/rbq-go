@@ -1,17 +1,272 @@
 package rbq
 
 import (
+	"fmt"
 	"github.com/buger/jsonparser"
+	"log"
+	"regexp"
 	"strings"
 )
 
+// CQRecv 接收的CQ码消息
+// 从收到的消息中解析出CQ码和纯文本消息
+type CQRecv struct {
+	cq       []CQCodeInterface
+	cqm      map[string][]CQCodeInterface
+	pureText string // 不包含CQ码的纯文本消息
+}
+
+func newCQRecv() *CQRecv {
+	return &CQRecv{
+		cq:  make([]CQCodeInterface, 0, 10),
+		cqm: make(map[string][]CQCodeInterface),
+	}
+}
+
+func coverCQIToSepType[T any](cqi []CQCodeInterface) []T {
+	ret := make([]T, len(cqi))
+	for k, v := range cqi {
+		ret[k] = v.(T)
+	}
+	return ret
+}
+
+func (cqr *CQRecv) pushCQCode(cq CQCodeInterface) {
+	t := cq.CQType()
+	cqr.cq = append(cqr.cq, cq)
+	cqr.cqm[t] = append(cqr.cqm[t], cq)
+}
+
+func (cqr CQRecv) GetAllCQCode() []CQCodeInterface {
+	return cqr.cq
+}
+
+func (cqr CQRecv) GetCQCodeByType(t string) []CQCodeInterface {
+	var ret []CQCodeInterface
+	if cqs, _ok := cqr.cqm[t]; _ok {
+		ret = cqs
+	}
+	return ret
+}
+
+func (cqr CQRecv) GetText() string {
+	return cqr.pureText
+}
+
+// GetCQFace 获取表情
+func (cqr CQRecv) GetCQFace() []*CQFace {
+	return coverCQIToSepType[*CQFace](cqr.GetCQCodeByType("face"))
+}
+
+// GetCQRecord 获取语音消息
+// 因为qq单条消息只可能发送一条语音，所以接受时也只可能接收到一条，所以只返回单个
+func (cqr CQRecv) GetCQRecord() *CQRecord {
+	r := coverCQIToSepType[*CQRecord](cqr.GetCQCodeByType("record"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
+// GetCQVideo 获取视频消息
+// 因为qq单条消息只可能发送一条视频，所以接受时也只可能接收到一条，所以只返回单个
+func (cqr CQRecv) GetCQVideo() *CQVideo {
+	r := coverCQIToSepType[*CQVideo](cqr.GetCQCodeByType("video"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
+// GetCQShare 获取分享链接
+func (cqr CQRecv) GetCQShare() *CQShare {
+	r := coverCQIToSepType[*CQShare](cqr.GetCQCodeByType("share"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
+// GetCQLocation TODO 获取位置分享，go-cqhttp 暂未实现
+//func (cpr CQRecv) GetCQLocation() *CQLocation {
+//	r := coverCQIToSepType[*CQLocation](cpr.GetCQCodeByType("location"))
+//	if len(r) > 0 {
+//		return r[0]
+//	}
+//	return nil
+//}
+
+// GetCQImage 获取图片
+func (cqr CQRecv) GetCQImage() []*CQImage {
+	return coverCQIToSepType[*CQImage](cqr.GetCQCodeByType("image"))
+}
+
+// GetCQReply 获取回复消息
+func (cqr CQRecv) GetCQReply() *CQReply {
+	r := coverCQIToSepType[*CQReply](cqr.GetCQCodeByType("reply"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
+// GetCQRedBag 获取红包
+func (cqr CQRecv) GetCQRedBag() *CQRedBag {
+	r := coverCQIToSepType[*CQRedBag](cqr.GetCQCodeByType("redbag"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
+type CQSend struct {
+	cq  []*CQCode
+	cqm map[string][]*CQCode
+	err []error
+}
+
+func newCQSend() *CQSend {
+	return &CQSend{
+		cq:  make([]*CQCode, 0, 10),
+		cqm: make(map[string][]*CQCode),
+	}
+}
+
+// AddCQCode 添加CQ码
+func (cqs *CQSend) AddCQCode(cq *CQCode) *CQSend {
+	if cq == nil {
+		return cqs
+	}
+	if cq.CQType() == "reply" && len(cqs.cqm["reply"]) > 0 {
+		return cqs
+	}
+	cqs.cq = append(cqs.cq, cq)
+	cqs.cqm[cq.CQType()] = append(cqs.cqm[cq.CQType()], cq)
+	return cqs
+}
+
+// AddText 添加纯文本
+func (cqs *CQSend) AddText(text string) *CQSend {
+	return cqs.AddCQCode(NewCQText(text))
+}
+
+// AddCQFace 添加表情
+func (cqs *CQSend) AddCQFace(faceId ...int) *CQSend {
+	for _, id := range faceId {
+		cqs.AddCQCode(NewCQFace(id))
+	}
+	return cqs
+}
+
+// AddCQRecord 发送语音消息
+// file 语音文件路径，支持 http://，https://，base64://，file://协议
+func (cqs *CQSend) AddCQRecord(file string) *CQSend {
+	c, e := NewCQRecord(file, false, true, true, 0)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQVideo 发送短视频消息
+// file 视频文件路径，支持 http://，https://，base64://，file://协议
+// cover 封面文件路径，支持 http://，https://，base64://，file://协议，图片必须是jpg格式
+func (cqs *CQSend) AddCQVideo(file, cover string) *CQSend {
+	c, e := NewCQVideo(file, cover, 1)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQAt at某人，传入0表示at全体成员
+func (cqs *CQSend) AddCQAt(qq ...int64) *CQSend {
+	for _, id := range qq {
+		cqs.AddCQCode(NewCQAt(id, ""))
+	}
+	return cqs
+}
+
+// AddCQShare 发送分享链接
+func (cqs *CQSend) AddCQShare(url, title, content, image string) *CQSend {
+	c, e := NewCQShare(url, title, content, image)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQLocation TODO 发送位置，go-cqhttp 暂未实现
+//func (cqs *CQSend) AddCQLocation(lat, lon float64, title, content string) *CQSend {
+//r, e := NewCQLocation(lat, lon, title, content)
+//if e != nil {
+//	cqs.err = append(cqs.err, e)
+//}
+//return cqs.AddCQCode(r)
+//}
+
+// AddCQMusic 发送音乐分享
+func (cqs *CQSend) AddCQMusic(type_ string, id int64) *CQSend {
+	c, e := NewCQMusic(type_, id, "", "", "", "", "")
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQMusicCustom 发送自定义音乐分享
+func (cqs *CQSend) AddCQMusicCustom(url, audio, title, content, image string) *CQSend {
+	c, e := NewCQMusic(CQMusicTypeCustom, 0, url, audio, title, content, image)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddImage 发送图片
+func (cqs *CQSend) AddImage(file string) *CQSend {
+	c, e := NewCQImage(file, "", 0, false, 0, 2)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQReply 回复消息
+func (cqs *CQSend) AddCQReply(id int64) *CQSend {
+	return cqs.AddCQCode(NewCQReply(id))
+}
+
+// AddCQPoke 戳一戳
+func (cqs *CQSend) AddCQPoke(qq int64) *CQSend {
+	c := NewCQPoke(qq)
+	return cqs.AddCQCode(c)
+}
+
 type MessageHandle struct {
+	*CQRecv
+	*CQSend
 	recv *RecvNormalMsg
 	rep  *ReplyMessage
 }
 
+// decodeMessage 解析消息，将消息中的CQ码和纯文本分离并将CQ码解析为结构体
+func (c *MessageHandle) decodeMessage() {
+	s := c.recv.Message
+	p := regexp.MustCompile(`\[CQ:.*?]`)
+	sp := p.Split(s, -1)
+	c.pureText = strings.Join(sp, "")
+	cq := p.FindAllString(s, -1)
+	for _, v := range cq {
+		cqCode := cqDecodeFromString(v)
+		if cqCode != nil {
+			c.pushCQCode(cqCode)
+		}
+	}
+}
+
 // IsGroup 判断是否是群聊消息
-func (c MessageHandle) IsGroup() bool {
+func (c *MessageHandle) IsGroup() bool {
 	return c.recv.GroupId > 0
 }
 
@@ -28,47 +283,39 @@ func (c *MessageHandle) GetGroupNo() int64 {
 	return int64(0)
 }
 
-// GetRecvMessage 获取接收到的消息
-func (c *MessageHandle) GetRecvMessage() string {
+// GetMessage 获取接收到的消息
+func (c *MessageHandle) GetMessage() string {
 	return c.recv.Message
 }
 
-// AddMsg 添加回复的消息
-// usage：ctx.AddMsg("hello world")
-func (c *MessageHandle) AddMsg(m string) {
-	c.rep.WriteText(m)
+func (c *MessageHandle) GetMessageId() int64 {
+	return c.recv.MessageId
 }
 
-// AddAt 添加@某人的消息, 如果要@全体成员，传入0，这个方法只对发送到群的消息生效
-func (c *MessageHandle) AddAt(userId ...int64) {
-	at := NewCQAt()
-	at.To(userId...)
-	c.rep.WriteCQCode(at)
-}
+// AddReply 重写添加CQReply方法，id 如果小于等于 0，将会自动获取当前消息的id
+//func (c *MessageHandle) AddReply(id int64) {
+//	if id <= 0 {
+//		id = c.recv.MessageId
+//	}
+//	//c.rep.AddReply(id)
+//}
 
-// AddFace 添加表情，id为表情的id，其范围为 0~221，具体请查看 CQFace.Id 的注释
-func (c *MessageHandle) AddFace(id ...int64) {
-	face := NewCQFace()
-	face.Id(id...)
-	c.rep.WriteCQCode(face)
-}
-
-// Reply 回复消息
+// Reply 发送消息，默认向消息来源发送，如群，私聊
 func (c *MessageHandle) Reply(ss ...string) {
 	for _, s := range ss {
-		c.rep.WriteText(s)
+		c.AddCQCode(NewCQText(s))
 	}
-	c.rep.send(c.recv.UserId, c.recv.GroupId)
+	c.rep.send(c.recv.UserId, c.recv.GroupId, c.CQSend)
 }
 
-// SendToPrivate 向私聊发送消息
+// SendToPrivate 向指定私聊发送消息
 func (c *MessageHandle) SendToPrivate(userId int64) {
-	c.rep.send(userId, 0)
+	c.rep.send(userId, 0, c.CQSend)
 }
 
-// SendToGroup 向群聊发送消息
+// SendToGroup 向指定群聊发送消息
 func (c *MessageHandle) SendToGroup(groupId int64) {
-	c.rep.send(0, groupId)
+	c.rep.send(0, groupId, c.CQSend)
 }
 
 // RecvNormalMsg 接受的消息结构体类型
@@ -106,6 +353,8 @@ func parseMessageBytes(recv []byte) *RecvNormalMsg {
 		return nil
 	}
 
+	fmt.Println(postType)
+
 	if postType == "message" {
 		var recvMsg *RecvNormalMsg
 		err2 := json.Unmarshal(recv, &recvMsg)
@@ -119,51 +368,63 @@ func parseMessageBytes(recv []byte) *RecvNormalMsg {
 	return nil
 }
 
-type ReplyMessageDataUnit struct {
-	cq   CQCodeEleInterface
-	text string
-}
-
 type ReplyMessage struct {
-	UserId  int64                  `json:"user_id"`
-	GroupId int64                  `json:"group_id"`
-	Message []ReplyMessageDataUnit `json:"message"`
-	Data    *strings.Builder
-	resp    *ApiReq
+	resp *ApiReq
 }
 
-func (r *ReplyMessage) send(userID, groupID int64) {
-	r.concatMessage()
-	rep := r.Data.String()
-	if rep == "" {
-		return // 没有回复内容
+func newReplyMessage() *ReplyMessage {
+	return &ReplyMessage{
+		resp: &ApiReq{},
 	}
-	r.resp.pushMsg(userID, groupID, rep, false)
 }
 
-func (r *ReplyMessage) concatMessage() {
-	for _, v := range r.Message {
-		if v.cq != nil {
-			s := v.cq.String()
-			if v.cq.HasError() {
+func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) {
+	for _, err := range cqs.err {
+		log.Println(err)
+	}
+	msg, cards, forward := r.tidyCQCode(cqs.cqm)
+
+	if msg != "" {
+		r.resp.pushMsg(userID, groupID, msg, false)
+	}
+
+	for _, card := range cards {
+		r.resp.pushMsg(userID, groupID, card, false)
+	}
+
+	// 合并转发只能对群聊发送， go-cqhttp 未提供相关接口
+	if groupID > 0 {
+		for _, f := range forward {
+			if groupID <= 0 {
 				continue
 			}
-			r.Data.WriteString(s)
-		} else {
-			r.Data.WriteString(v.text)
+			r.resp.pushGroupForwardMsg(groupID, f)
 		}
 	}
 }
 
-func (r *ReplyMessage) WriteText(s ...string) {
-	for _, v := range s {
-		r.Message = append(r.Message, ReplyMessageDataUnit{text: v})
-	}
-}
+func (r *ReplyMessage) tidyCQCode(cqm map[string][]*CQCode) (string, []string, []*CQCode) {
+	var msg string        // 可以合并一次性发送的cq码
+	var card []string     // 一次发送只能有一个的cq码
+	var forward []*CQCode // 合并转发，该消息类型比较特殊
 
-func (r *ReplyMessage) WriteCQCode(cc CQCodeEleInterface) {
-	if cc.HasError() {
-		return
+	sb := &strings.Builder{}
+	for t, cqs := range cqm {
+		switch t {
+		case "text", "face", "at", "image", "reply":
+			for _, cq := range cqs {
+				sb.WriteString(cq.String())
+			}
+		case "node":
+			for _, cq := range cqs {
+				forward = append(forward, cq)
+			}
+		default:
+			for _, cq := range cqs {
+				card = append(card, cq.String())
+			}
+		}
 	}
-	r.Message = append(r.Message, ReplyMessageDataUnit{cq: cc, text: cc.String()})
+	msg = sb.String()
+	return msg, card, forward
 }

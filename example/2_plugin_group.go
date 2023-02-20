@@ -5,7 +5,7 @@ import (
 )
 
 // ExamplePluginGroup 样例，消息组的用法
-// 所有插件本质上都至少属于一个组，即使是直接调用 BIndPlugin 函数绑定的插件，也会被自动分配到一个default组中
+// 所有插件本质上都至少属于一个组，即使是直接调用 BIndPlugin 函数绑定的插件，也会被自动分配到default组中
 // default组是一个特殊的组，它会忽略 PluginOption 参数
 func ExamplePluginGroup() {
 	bot := qq_robot_go.NewApp()

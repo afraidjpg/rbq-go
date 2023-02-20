@@ -1,18 +1,26 @@
 package example
 
-import qq_robot_go "github.com/afraidjpg/rbq-go"
+import "github.com/afraidjpg/rbq-go"
 
-func GetPluginAt(to int64, only int64) qq_robot_go.PluginFunc {
-	return func(ctx *qq_robot_go.Context) {
+func ExamplePluginCQCode() {
+	app := rbq.NewApp()
+	app.GetPluginLoader().BindPlugin(GetPluginAt(0, 0), nil)
+	app.GetPluginLoader().BindPlugin(PluginAt, nil)
+	app.Run("")
+}
+
+func GetPluginAt(to int64, only int64) rbq.PluginFunc {
+	return func(ctx *rbq.Context) {
 		if ctx.IsGroup() && only == ctx.GetSender() {
-			ctx.AddAt(to)
+			ctx.AddCQAt(to)
 			ctx.Reply()
 		}
 	}
 }
 
 // PluginAt 一个简单的 at 插件示例
-func PluginAt(ctx *qq_robot_go.Context) {
-	ctx.AddAt(0)
-	ctx.Reply()
+func PluginAt(ctx *rbq.Context) {
+	// at 全体成员
+	ctx.AddCQAt(0)
+	ctx.Reply("全体人员像我看齐！")
 }
