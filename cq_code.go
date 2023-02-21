@@ -2,6 +2,7 @@ package rbq
 
 import "C"
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -39,6 +40,19 @@ func cqValidConcurrency(c int) int {
 		return 3
 	}
 	return c
+}
+
+func cqEscapeJsonChar(s string) string {
+	s = strings.ReplaceAll(s, "\\", `\\`)
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, "\n", `\n`)
+	s = strings.ReplaceAll(s, "\r", `\r`)
+	s = strings.ReplaceAll(s, "\t", `\t`)
+	s = strings.ReplaceAll(s, "\b", `\b`)
+	s = strings.ReplaceAll(s, "\f", `\f`)
+	s = strings.ReplaceAll(s, "/", `\/`)
+
+	return s
 }
 
 func cqToString(v any) string {
@@ -129,6 +143,10 @@ func cqDecodeFromString(s string) CQCodeInterface {
 		cq = &CQImage{CQCode: &CQCode{Type: "image"}}
 	case "reply":
 		cq = &CQReply{CQCode: &CQCode{Type: "reply"}}
+	case "regbag":
+		cq = &CQRedBag{CQCode: &CQCode{Type: "regbag"}}
+	case "forward":
+		cq = &CQForward{CQCode: &CQCode{Type: "forward"}}
 	}
 
 	if cq == nil {
@@ -158,6 +176,40 @@ type CQCodeInterface interface {
 type CQCode struct {
 	Type string
 	Data []CQDataValue
+}
+
+// UnmarshalJSON 不会用到，需不要实现该方法
+func (cq *CQCode) UnmarshalJSON(b []byte) error {
+	return nil
+}
+
+func (cq *CQCode) MarshalJSON() ([]byte, error) {
+	sb := &strings.Builder{}
+	sb.WriteString(`{`)
+	sb.WriteString(fmt.Sprintf(`"type":"%s",`, cqEscapeJsonChar(cq.Type)))
+	sb.WriteString(`"data":{`)
+	l := len(cq.Data)
+	for i, v := range cq.Data {
+		switch v.V.(type) {
+		case string:
+			s := v.V.(string)
+			sb.WriteString(fmt.Sprintf(`"%s":"%s"`, cqEscapeJsonChar(v.K), cqEscapeJsonChar(s)))
+		case *CQCode, []*CQCode:
+			s, err := json.Marshal(v.V)
+			if err != nil {
+				return nil, err
+			}
+			sb.WriteString(fmt.Sprintf(`"%s":%s`, cqEscapeJsonChar(v.K), s))
+		default:
+			return nil, errors.New("unknown Data type in CQCode")
+		}
+
+		if i != l-1 {
+			sb.WriteString(",")
+		}
+	}
+	sb.WriteString("}}")
+	return []byte(sb.String()), nil
 }
 
 func (cq CQCode) CQType() string {
@@ -694,4 +746,91 @@ func NewCQPoke(qq int64) *CQCode {
 // CQForward 转发
 type CQForward struct {
 	*CQCode
+}
+
+// GetId 获取转发的消息id
+func (f CQForward) GetId() int64 {
+	return f.GetInt64("id")
+}
+
+// NewCQForwardNode 新建一个转发消息
+func NewCQForwardNode(id int64, name string, uin int64, content, seq any) (*CQCode, *CQCodeError) {
+	if id != 0 {
+		return newCQCode("node", map[string]any{
+			"id": id,
+		}), nil
+	}
+
+	var c []*CQCode
+	switch content.(type) {
+	case string:
+		c = append(c, NewCQText(content.(string)))
+	case []string:
+		for _, s := range content.([]string) {
+			c = append(c, NewCQText(s))
+		}
+	case *CQCode:
+		c = append(c, content.(*CQCode))
+	case []*CQCode:
+		c = content.([]*CQCode)
+	case fmt.Stringer:
+		c = append(c, NewCQText(content.(fmt.Stringer).String()))
+	case []fmt.Stringer:
+		for _, s := range content.([]fmt.Stringer) {
+			c = append(c, NewCQText(s.String()))
+		}
+	default:
+		return nil, newCQError("forward node", "content内容类型错误")
+	}
+
+	return newCQCode("node", map[string]any{
+		"name":    name,
+		"uin":     uin,
+		"content": content,
+		"seq":     seq,
+	}), nil
+}
+
+// NewCQCardImage 新建一个装逼大图的CQ码
+// file 和 image 的 file 字段对齐，支持情况也想通
+// minWidth, minHeight, maxWidth, maxHeight 为图片的最小宽高和最大宽高, 0 为默认
+// source 可选，表示分享来源名称
+// icon 可选，表示分享来源图标url，支持 http://, https://
+func NewCQCardImage(file string, minWidth, minHeight, maxWidth, maxHeight int64, source, icon string) (*CQCode, *CQCodeError) {
+	if !cqIsPrefix(file, "http://", "https://", "file://", "base64://") {
+		return nil, newCQError("cardimage", "file必须以 [http://, https://, file://, base64://] 开头")
+	}
+
+	if minWidth <= 0 {
+		minWidth = 400
+	}
+	if minHeight <= minWidth {
+		minHeight = minWidth + 100
+	}
+	if maxWidth < minWidth {
+		maxWidth = minWidth + 100
+	}
+
+	val := map[string]any{
+		"file":      file,
+		"minWidth":  minWidth,
+		"minHeight": minHeight,
+		"maxWidth":  maxWidth,
+		"maxHeight": maxHeight,
+	}
+
+	if icon != "" && cqIsPrefix(icon, "http://", "https://") {
+		val["icon"] = icon
+	}
+	if source != "" {
+		val["source"] = source
+	}
+
+	return newCQCode("cardimage", val), nil
+}
+
+// NewCQTTS
+// text 为要转换的文本
+func NewCQTTS(text string) *CQCode {
+	return newCQCode("tts", map[string]any{"text": text})
 }

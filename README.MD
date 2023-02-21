@@ -161,12 +161,12 @@ func YourPlugin(ctx *rbq.Context) {
 |   share   | 完成  | 收&发  | ⚠️对群时发送/接受时可能会失败                                                      |
 |   music   | 完成  | 收&发  |                                                                       |
 |   reply   | 完成  | 收&发  |                                                                       |
-|  forward  | 未实现 |      |                                                                       |
-|   node    | 未实现 |      |                                                                       |
+|  forward  | 完成  |  收   |                                                                       |
+|   node    | 完成  |  发   |                                                                       |
 |    xml    | 未实现 |      |                                                                       |
 |   json    | 未实现 |      |                                                                       |
 |   image   | 完成  | 收&发  |                                                                       |
 |  redbag   | 完成  |  收   |                                                                       |
 |   poke    | 完成  |  发   |                                                                       |
-| cardimage | 未实现 |      |                                                                       |
-|    tts    | 未实现 |      |                                                                       |
+| cardimage | 完成  |  发   |                                                                       |
+|    tts    | 完成  |  发   |                                                                       |
