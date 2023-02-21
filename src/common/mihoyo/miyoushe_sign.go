@@ -52,13 +52,14 @@ func IsSigned(uid int64) (bool, error) {
 	isSignUrl := fmt.Sprintf("https://api-takumi.mihoyo.com/event/bbs_sign_reward/info?act_id=e202009291139501&region=cn_gf01&uid=%d", uid)
 	var isS bool
 	var errS error
+	cookieToken := "" // 你的token
 	c := colly.NewCollector()
 	extensions.RandomUserAgent(c)
 	c.OnRequest(func(req *colly.Request) {
 		req.Headers.Set("Host", "api-takumi.mihoyo.com")
 		req.Headers.Set("Origin", "https://webstatic.mihoyo.com")
 		req.Headers.Set("Accept", "application/json, text/plain, */*")
-		req.Headers.Set("Cookie", "account_id=5630036; cookie_token=H96MoLwtWxO9JKdokyns3J2s5MQe8CejhwqjS8dH; aliyungf_tc=c393193eddeb999bfdc36f24784328dd42a5a688cfe1a01741f7577fb8703c12")
+		req.Headers.Set("Cookie", "account_id=5630036; cookie_token="+cookieToken+"; aliyungf_tc=c393193eddeb999bfdc36f24784328dd42a5a688cfe1a01741f7577fb8703c12")
 	})
 	c.OnResponse(func(resp *colly.Response) {
 		body := resp.Body

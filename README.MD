@@ -1,5 +1,5 @@
-<h1>基于go-cqhttp的机器人插件框架</h1>
-
+<h1 style="text-align: center">rbq-go</h1>
+<h3 style="text-align: center">一个以go-cqhttp为后端的插件开发框架</h3>
 
 ![](https://img.shields.io/badge/go-v1.18%2B-blue)
 [![](https://img.shields.io/badge/go--cqhttp-v1.0.0-orange)](https://github.com/Mrs4s/go-cqhttp)
@@ -13,6 +13,15 @@
 一个人的力量是有限的，所以如果你愿意使用，并在使用过程中有任何问题、新的feature/代码修改建议，欢迎提出issue，我会尽可能的回复并改进。
 
 PS: rbq = robot qq
+
+<h2>简介</h2>
+
+rbq-go是一个以go-cqhttp为后端的插件开发框架，它的目标是提供一个简单、易用的插件开发环境，通过封装go-cqhttp的api，使插件开发者可以更简单的与qq交互。  
+
+项目灵感来自于许久以前写着玩儿的时候，发现要写一堆代码去调用后端，感觉很麻烦，于是有了写这个项目的念头，我但愿这个项目能够帮助到你。  
+
+为了保持项目简单易懂，项目会 **尽量避免使用过于复杂的设计** ，降低学习成本。同时保留高级功能的空间，使之可以胜任复杂场景。期望是不再需要理解以及再封装onebot的文档，即可简单的开发插件
+
 
 <h2>安装</h2>
 
@@ -132,7 +141,7 @@ func YourPlugin(ctx *rbq.Context) {
     // 获取该条消息中的所有CQ码，返回类型为 []CQCodeInterface，需要手动转换类型
     cq := ctx.GetAllCQCode() 
 	
-	// 获取CQ码的方式为 ctx.GetCQX(), 其中X为CQ码的类型，例如 ctx.GetCQAt() 获取at码
+    // 获取CQ码的方式为 ctx.GetCQX(), 其中X为CQ码的类型，例如 ctx.GetCQAt() 获取at码
     ats := ctx.GetCQAt() // 返回 []*CQAt，获取该条消息中的所有at
     for _, at := range ats {
         fmt.Println(at.GetQQ()) // 获取at的qq号
