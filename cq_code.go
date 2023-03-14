@@ -596,6 +596,29 @@ func (l CQLocation) GetLat() float64 {
 func (l CQLocation) GetLot() float64 {
 	return l.GetFloat64("lon")
 }
+*/
+
+// NewCQMusic 新建一个音乐的CQ码
+// type 为音乐类型，支持 qq,163,xm 以及自定义 custom
+// id 为音乐id，只在 type 为 qq,163,xm 有效
+// 其他参数只在 type 为 custom 有效
+// url 为点击后跳转目标 URL
+// audio 为音乐 URL
+// title 为音乐标题
+// content 可选 为音乐简介
+// image 可选 为音乐封面图片 URL
+// CQMusic 没有接收，只有发送
+func NewCQMusic(type_ string, id int64, url, audio, title, content, image string) (*CQCode, *CQCodeError) {
+	if type_ == CQMusicTypeCustom {
+		if !cqIsPrefix(url, "http://", "https://") {
+			return nil, newCQError("music", "url必须以 [http://, https://] 开头")
+		}
+		if !cqIsPrefix(audio, "http://", "https://") {
+			return nil, newCQError("music", "audio必须以 [http://, https://] 开头")
+		}
+		if title == "" {
+			return nil, newCQError("music", "title不能为空")
+		}
 
 // GetTitle 获取标题
 func (l CQLocation) GetTitle() string {
