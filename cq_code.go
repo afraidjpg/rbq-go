@@ -212,15 +212,15 @@ func (cq *CQCode) MarshalJSON() ([]byte, error) {
 	return []byte(sb.String()), nil
 }
 
-func (cq CQCode) CQType() string {
+func (cq *CQCode) CQType() string {
 	return cq.Type
 }
 
-func (cq CQCode) CQData() []CQDataValue {
+func (cq *CQCode) CQData() []CQDataValue {
 	return cq.Data
 }
 
-func (cq CQCode) Get(k string) any {
+func (cq *CQCode) Get(k string) any {
 	for _, v := range cq.Data {
 		if v.K == k {
 			return v.V
@@ -229,7 +229,7 @@ func (cq CQCode) Get(k string) any {
 	return nil
 }
 
-func (cq CQCode) GetString(k string) string {
+func (cq *CQCode) GetString(k string) string {
 	v := cq.Get(k)
 	if v == nil {
 		return ""
@@ -244,7 +244,7 @@ func (cq CQCode) GetString(k string) string {
 	}
 }
 
-func (cq CQCode) GetInt(k string) int {
+func (cq *CQCode) GetInt(k string) int {
 	v := cq.Get(k)
 	if v == nil {
 		return 0
@@ -269,12 +269,12 @@ func (cq CQCode) GetInt(k string) int {
 	}
 }
 
-func (cq CQCode) GetInt64(k string) int64 {
+func (cq *CQCode) GetInt64(k string) int64 {
 	v := cq.GetInt(k)
 	return int64(v)
 }
 
-func (cq CQCode) GetFloat64(k string) float64 {
+func (cq *CQCode) GetFloat64(k string) float64 {
 	v := cq.Get(k)
 	if v == nil {
 		return 0
@@ -295,12 +295,12 @@ func (cq CQCode) GetFloat64(k string) float64 {
 	}
 }
 
-func (cq CQCode) GetBool(k string) bool {
+func (cq *CQCode) GetBool(k string) bool {
 	v := cq.GetInt(k)
 	return v != 0
 }
 
-func (cq CQCode) String() string {
+func (cq *CQCode) String() string {
 	if cq.Type == "text" {
 		return cq.GetString("text")
 	}
@@ -329,7 +329,7 @@ func (cq CQCode) String() string {
 	return s.String()
 }
 
-func (cq CQCode) Decode(s string) {
+func (cq *CQCode) Decode(s string) {
 	s = strings.Trim(s, "[]")
 	ts := strings.Split(s, ",")
 	typeName := strings.Split(ts[0], ":")[1]
@@ -405,7 +405,7 @@ type CQText struct {
 }
 
 // GetText 获取文本内容
-func (t CQText) GetText() string {
+func (t *CQText) GetText() string {
 	return t.GetString("text")
 }
 
@@ -422,7 +422,7 @@ type CQFace struct {
 }
 
 // GetId 获取表情ID
-func (at CQFace) GetId() int64 {
+func (at *CQFace) GetId() int64 {
 	return at.GetInt64("id")
 }
 
@@ -455,17 +455,17 @@ type CQRecord struct {
 }
 
 // GetFile 获取文件名
-func (r CQRecord) GetFile() string {
+func (r *CQRecord) GetFile() string {
 	return r.GetString("file")
 }
 
 // GetMagic 是否变声
-func (r CQRecord) GetMagic() bool {
+func (r *CQRecord) GetMagic() bool {
 	return r.GetBool("magic")
 }
 
 // GetUrl 获取文件链接
-func (r CQRecord) GetUrl() string {
+func (r *CQRecord) GetUrl() string {
 	return r.GetString("url")
 }
 
@@ -489,12 +489,12 @@ type CQVideo struct {
 }
 
 // GetUrl 获取文件路径
-func (v CQVideo) GetUrl() string {
+func (v *CQVideo) GetUrl() string {
 	return v.GetString("url")
 }
 
 // GetCover 获取文件名
-func (v CQVideo) GetCover() string {
+func (v *CQVideo) GetCover() string {
 	return v.GetString("cover")
 }
 
@@ -518,7 +518,7 @@ type CQAt struct {
 }
 
 // GetQQ 获取 at 的 QQ号
-func (at CQAt) GetQQ() int64 {
+func (at *CQAt) GetQQ() int64 {
 	return at.GetInt64("qq")
 }
 
@@ -549,22 +549,22 @@ type CQShare struct {
 }
 
 // GetUrl 获取链接
-func (s CQShare) GetUrl() string {
+func (s *CQShare) GetUrl() string {
 	return s.GetString("url")
 }
 
 // GetTitle 获取标题
-func (s CQShare) GetTitle() string {
+func (s *CQShare) GetTitle() string {
 	return s.GetString("title")
 }
 
 // GetContent 获取内容
-func (s CQShare) GetContent() string {
+func (s *CQShare) GetContent() string {
 	return s.GetString("content")
 }
 
 // GetImage 获取图片
-func (s CQShare) GetImage() string {
+func (s *CQShare) GetImage() string {
 	return s.GetString("image")
 }
 
@@ -688,22 +688,22 @@ type CQImage struct {
 }
 
 // GetFile 获取图片文件名
-func (i CQImage) GetFile() string {
+func (i *CQImage) GetFile() string {
 	return i.GetString("file")
 }
 
 // GetType 获取图片类型
-func (i CQImage) GetType() string {
+func (i *CQImage) GetType() string {
 	return i.GetString("type")
 }
 
 // GetSubType 获取图片子类型
-func (i CQImage) GetSubType() int {
+func (i *CQImage) GetSubType() int {
 	return i.GetInt("subType")
 }
 
 // GetUrl 获取图片链接
-func (i CQImage) GetUrl() string {
+func (i *CQImage) GetUrl() string {
 	return i.GetString("url")
 }
 
@@ -718,7 +718,7 @@ type CQReply struct {
 }
 
 // GetId 获取回复的消息id
-func (r CQReply) GetId() int64 {
+func (r *CQReply) GetId() int64 {
 	return r.GetInt64("id")
 }
 
@@ -734,7 +734,7 @@ type CQRedBag struct {
 }
 
 // GetTitle 获取红包标题
-func (r CQRedBag) GetTitle() string {
+func (r *CQRedBag) GetTitle() string {
 	return r.GetString("title")
 }
 
@@ -749,7 +749,7 @@ type CQForward struct {
 }
 
 // GetId 获取转发的消息id
-func (f CQForward) GetId() int64 {
+func (f *CQForward) GetId() int64 {
 	return f.GetInt64("id")
 }
 
