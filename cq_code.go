@@ -2,6 +2,7 @@ package rbq
 
 import "C"
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -39,6 +40,19 @@ func cqValidConcurrency(c int) int {
 		return 3
 	}
 	return c
+}
+
+func cqEscapeJsonChar(s string) string {
+	s = strings.ReplaceAll(s, "\\", `\\`)
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, "\n", `\n`)
+	s = strings.ReplaceAll(s, "\r", `\r`)
+	s = strings.ReplaceAll(s, "\t", `\t`)
+	s = strings.ReplaceAll(s, "\b", `\b`)
+	s = strings.ReplaceAll(s, "\f", `\f`)
+	s = strings.ReplaceAll(s, "/", `\/`)
+
+	return s
 }
 
 func cqToString(v any) string {
@@ -129,6 +143,10 @@ func cqDecodeFromString(s string) CQCodeInterface {
 		cq = &CQImage{CQCode: &CQCode{Type: "image"}}
 	case "reply":
 		cq = &CQReply{CQCode: &CQCode{Type: "reply"}}
+	case "regbag":
+		cq = &CQRedBag{CQCode: &CQCode{Type: "regbag"}}
+	case "forward":
+		cq = &CQForward{CQCode: &CQCode{Type: "forward"}}
 	}
 
 	if cq == nil {
@@ -160,15 +178,49 @@ type CQCode struct {
 	Data []CQDataValue
 }
 
-func (cq CQCode) CQType() string {
+// UnmarshalJSON 不会用到，需不要实现该方法
+func (cq *CQCode) UnmarshalJSON(b []byte) error {
+	return nil
+}
+
+func (cq *CQCode) MarshalJSON() ([]byte, error) {
+	sb := &strings.Builder{}
+	sb.WriteString(`{`)
+	sb.WriteString(fmt.Sprintf(`"type":"%s",`, cqEscapeJsonChar(cq.Type)))
+	sb.WriteString(`"data":{`)
+	l := len(cq.Data)
+	for i, v := range cq.Data {
+		switch v.V.(type) {
+		case string:
+			s := v.V.(string)
+			sb.WriteString(fmt.Sprintf(`"%s":"%s"`, cqEscapeJsonChar(v.K), cqEscapeJsonChar(s)))
+		case *CQCode, []*CQCode:
+			s, err := json.Marshal(v.V)
+			if err != nil {
+				return nil, err
+			}
+			sb.WriteString(fmt.Sprintf(`"%s":%s`, cqEscapeJsonChar(v.K), s))
+		default:
+			return nil, errors.New("unknown Data type in CQCode")
+		}
+
+		if i != l-1 {
+			sb.WriteString(",")
+		}
+	}
+	sb.WriteString("}}")
+	return []byte(sb.String()), nil
+}
+
+func (cq *CQCode) CQType() string {
 	return cq.Type
 }
 
-func (cq CQCode) CQData() []CQDataValue {
+func (cq *CQCode) CQData() []CQDataValue {
 	return cq.Data
 }
 
-func (cq CQCode) Get(k string) any {
+func (cq *CQCode) Get(k string) any {
 	for _, v := range cq.Data {
 		if v.K == k {
 			return v.V
@@ -177,7 +229,7 @@ func (cq CQCode) Get(k string) any {
 	return nil
 }
 
-func (cq CQCode) GetString(k string) string {
+func (cq *CQCode) GetString(k string) string {
 	v := cq.Get(k)
 	if v == nil {
 		return ""
@@ -192,7 +244,7 @@ func (cq CQCode) GetString(k string) string {
 	}
 }
 
-func (cq CQCode) GetInt(k string) int {
+func (cq *CQCode) GetInt(k string) int {
 	v := cq.Get(k)
 	if v == nil {
 		return 0
@@ -217,12 +269,12 @@ func (cq CQCode) GetInt(k string) int {
 	}
 }
 
-func (cq CQCode) GetInt64(k string) int64 {
+func (cq *CQCode) GetInt64(k string) int64 {
 	v := cq.GetInt(k)
 	return int64(v)
 }
 
-func (cq CQCode) GetFloat64(k string) float64 {
+func (cq *CQCode) GetFloat64(k string) float64 {
 	v := cq.Get(k)
 	if v == nil {
 		return 0
@@ -243,12 +295,12 @@ func (cq CQCode) GetFloat64(k string) float64 {
 	}
 }
 
-func (cq CQCode) GetBool(k string) bool {
+func (cq *CQCode) GetBool(k string) bool {
 	v := cq.GetInt(k)
 	return v != 0
 }
 
-func (cq CQCode) String() string {
+func (cq *CQCode) String() string {
 	if cq.Type == "text" {
 		return cq.GetString("text")
 	}
@@ -277,7 +329,7 @@ func (cq CQCode) String() string {
 	return s.String()
 }
 
-func (cq CQCode) Decode(s string) {
+func (cq *CQCode) Decode(s string) {
 	s = strings.Trim(s, "[]")
 	ts := strings.Split(s, ",")
 	typeName := strings.Split(ts[0], ":")[1]
@@ -353,7 +405,7 @@ type CQText struct {
 }
 
 // GetText 获取文本内容
-func (t CQText) GetText() string {
+func (t *CQText) GetText() string {
 	return t.GetString("text")
 }
 
@@ -370,7 +422,7 @@ type CQFace struct {
 }
 
 // GetId 获取表情ID
-func (at CQFace) GetId() int64 {
+func (at *CQFace) GetId() int64 {
 	return at.GetInt64("id")
 }
 
@@ -403,17 +455,17 @@ type CQRecord struct {
 }
 
 // GetFile 获取文件名
-func (r CQRecord) GetFile() string {
+func (r *CQRecord) GetFile() string {
 	return r.GetString("file")
 }
 
 // GetMagic 是否变声
-func (r CQRecord) GetMagic() bool {
+func (r *CQRecord) GetMagic() bool {
 	return r.GetBool("magic")
 }
 
 // GetUrl 获取文件链接
-func (r CQRecord) GetUrl() string {
+func (r *CQRecord) GetUrl() string {
 	return r.GetString("url")
 }
 
@@ -437,12 +489,12 @@ type CQVideo struct {
 }
 
 // GetUrl 获取文件路径
-func (v CQVideo) GetUrl() string {
+func (v *CQVideo) GetUrl() string {
 	return v.GetString("url")
 }
 
 // GetCover 获取文件名
-func (v CQVideo) GetCover() string {
+func (v *CQVideo) GetCover() string {
 	return v.GetString("cover")
 }
 
@@ -466,7 +518,7 @@ type CQAt struct {
 }
 
 // GetQQ 获取 at 的 QQ号
-func (at CQAt) GetQQ() int64 {
+func (at *CQAt) GetQQ() int64 {
 	return at.GetInt64("qq")
 }
 
@@ -497,22 +549,22 @@ type CQShare struct {
 }
 
 // GetUrl 获取链接
-func (s CQShare) GetUrl() string {
+func (s *CQShare) GetUrl() string {
 	return s.GetString("url")
 }
 
 // GetTitle 获取标题
-func (s CQShare) GetTitle() string {
+func (s *CQShare) GetTitle() string {
 	return s.GetString("title")
 }
 
 // GetContent 获取内容
-func (s CQShare) GetContent() string {
+func (s *CQShare) GetContent() string {
 	return s.GetString("content")
 }
 
 // GetImage 获取图片
-func (s CQShare) GetImage() string {
+func (s *CQShare) GetImage() string {
 	return s.GetString("image")
 }
 
@@ -544,6 +596,29 @@ func (l CQLocation) GetLat() float64 {
 func (l CQLocation) GetLot() float64 {
 	return l.GetFloat64("lon")
 }
+*/
+
+// NewCQMusic 新建一个音乐的CQ码
+// type 为音乐类型，支持 qq,163,xm 以及自定义 custom
+// id 为音乐id，只在 type 为 qq,163,xm 有效
+// 其他参数只在 type 为 custom 有效
+// url 为点击后跳转目标 URL
+// audio 为音乐 URL
+// title 为音乐标题
+// content 可选 为音乐简介
+// image 可选 为音乐封面图片 URL
+// CQMusic 没有接收，只有发送
+func NewCQMusic(type_ string, id int64, url, audio, title, content, image string) (*CQCode, *CQCodeError) {
+	if type_ == CQMusicTypeCustom {
+		if !cqIsPrefix(url, "http://", "https://") {
+			return nil, newCQError("music", "url必须以 [http://, https://] 开头")
+		}
+		if !cqIsPrefix(audio, "http://", "https://") {
+			return nil, newCQError("music", "audio必须以 [http://, https://] 开头")
+		}
+		if title == "" {
+			return nil, newCQError("music", "title不能为空")
+		}
 
 // GetTitle 获取标题
 func (l CQLocation) GetTitle() string {
@@ -636,22 +711,22 @@ type CQImage struct {
 }
 
 // GetFile 获取图片文件名
-func (i CQImage) GetFile() string {
+func (i *CQImage) GetFile() string {
 	return i.GetString("file")
 }
 
 // GetType 获取图片类型
-func (i CQImage) GetType() string {
+func (i *CQImage) GetType() string {
 	return i.GetString("type")
 }
 
 // GetSubType 获取图片子类型
-func (i CQImage) GetSubType() int {
+func (i *CQImage) GetSubType() int {
 	return i.GetInt("subType")
 }
 
 // GetUrl 获取图片链接
-func (i CQImage) GetUrl() string {
+func (i *CQImage) GetUrl() string {
 	return i.GetString("url")
 }
 
@@ -666,7 +741,7 @@ type CQReply struct {
 }
 
 // GetId 获取回复的消息id
-func (r CQReply) GetId() int64 {
+func (r *CQReply) GetId() int64 {
 	return r.GetInt64("id")
 }
 
@@ -682,7 +757,7 @@ type CQRedBag struct {
 }
 
 // GetTitle 获取红包标题
-func (r CQRedBag) GetTitle() string {
+func (r *CQRedBag) GetTitle() string {
 	return r.GetString("title")
 }
 
@@ -694,4 +769,91 @@ func NewCQPoke(qq int64) *CQCode {
 // CQForward 转发
 type CQForward struct {
 	*CQCode
+}
+
+// GetId 获取转发的消息id
+func (f *CQForward) GetId() int64 {
+	return f.GetInt64("id")
+}
+
+// NewCQForwardNode 新建一个转发消息
+func NewCQForwardNode(id int64, name string, uin int64, content, seq any) (*CQCode, *CQCodeError) {
+	if id != 0 {
+		return newCQCode("node", map[string]any{
+			"id": id,
+		}), nil
+	}
+
+	var c []*CQCode
+	switch content.(type) {
+	case string:
+		c = append(c, NewCQText(content.(string)))
+	case []string:
+		for _, s := range content.([]string) {
+			c = append(c, NewCQText(s))
+		}
+	case *CQCode:
+		c = append(c, content.(*CQCode))
+	case []*CQCode:
+		c = content.([]*CQCode)
+	case fmt.Stringer:
+		c = append(c, NewCQText(content.(fmt.Stringer).String()))
+	case []fmt.Stringer:
+		for _, s := range content.([]fmt.Stringer) {
+			c = append(c, NewCQText(s.String()))
+		}
+	default:
+		return nil, newCQError("forward node", "content内容类型错误")
+	}
+
+	return newCQCode("node", map[string]any{
+		"name":    name,
+		"uin":     uin,
+		"content": content,
+		"seq":     seq,
+	}), nil
+}
+
+// NewCQCardImage 新建一个装逼大图的CQ码
+// file 和 image 的 file 字段对齐，支持情况也想通
+// minWidth, minHeight, maxWidth, maxHeight 为图片的最小宽高和最大宽高, 0 为默认
+// source 可选，表示分享来源名称
+// icon 可选，表示分享来源图标url，支持 http://, https://
+func NewCQCardImage(file string, minWidth, minHeight, maxWidth, maxHeight int64, source, icon string) (*CQCode, *CQCodeError) {
+	if !cqIsPrefix(file, "http://", "https://", "file://", "base64://") {
+		return nil, newCQError("cardimage", "file必须以 [http://, https://, file://, base64://] 开头")
+	}
+
+	if minWidth <= 0 {
+		minWidth = 400
+	}
+	if minHeight <= minWidth {
+		minHeight = minWidth + 100
+	}
+	if maxWidth < minWidth {
+		maxWidth = minWidth + 100
+	}
+
+	val := map[string]any{
+		"file":      file,
+		"minWidth":  minWidth,
+		"minHeight": minHeight,
+		"maxWidth":  maxWidth,
+		"maxHeight": maxHeight,
+	}
+
+	if icon != "" && cqIsPrefix(icon, "http://", "https://") {
+		val["icon"] = icon
+	}
+	if source != "" {
+		val["source"] = source
+	}
+
+	return newCQCode("cardimage", val), nil
+}
+
+// NewCQTTS
+// text 为要转换的文本
+func NewCQTTS(text string) *CQCode {
+	return newCQCode("tts", map[string]any{"text": text})
 }

@@ -119,6 +119,15 @@ func (cqr CQRecv) GetCQRedBag() *CQRedBag {
 	return nil
 }
 
+// GetCQForward 获取转发消息
+func (cqr CQRecv) GetCQForward() *CQForward {
+	r := coverCQIToSepType[*CQForward](cqr.GetCQCodeByType("forward"))
+	if len(r) > 0 {
+		return r[0]
+	}
+	return nil
+}
+
 type CQSend struct {
 	cq  []*CQCode
 	cqm map[string][]*CQCode
@@ -146,8 +155,11 @@ func (cqs *CQSend) AddCQCode(cq *CQCode) *CQSend {
 }
 
 // AddText 添加纯文本
-func (cqs *CQSend) AddText(text string) *CQSend {
-	return cqs.AddCQCode(NewCQText(text))
+func (cqs *CQSend) AddText(text ...string) *CQSend {
+	for _, t := range text {
+		cqs.AddCQCode(NewCQText(t))
+	}
+	return cqs
 }
 
 // AddCQFace 添加表情
@@ -240,6 +252,45 @@ func (cqs *CQSend) AddCQReply(id int64) *CQSend {
 // AddCQPoke 戳一戳
 func (cqs *CQSend) AddCQPoke(qq int64) *CQSend {
 	c := NewCQPoke(qq)
+	return cqs.AddCQCode(c)
+}
+
+// AddCQForwardMsg 转发消息
+func (cqs *CQSend) AddCQForwardMsg(id ...int64) *CQSend {
+	for _, i := range id {
+		f, e := NewCQForwardNode(i, "", 0, nil, nil)
+		if e != nil {
+			cqs.err = append(cqs.err, e)
+			continue
+		}
+		cqs.AddCQCode(f)
+	}
+	return cqs
+}
+
+// AddCQCustomForwardMsg 转发消息-自定义内容
+func (cqs *CQSend) AddCQCustomForwardMsg(name string, qq int64, content, seq any) *CQSend {
+	f, e := NewCQForwardNode(0, name, qq, content, seq)
+	if e != nil {
+		cqs.err = append(cqs.err, e)
+		return cqs
+	}
+	return cqs.AddCQCode(f)
+}
+
+// AddCQCardImage 发送装逼大图
+func (cqs *CQSend) AddCQCardImage(file string) *CQSend {
+	c, err := NewCQCardImage(file, 0, 0, 0, 0, "", "")
+	if err != nil {
+		cqs.err = append(cqs.err, err)
+		return cqs
+	}
+	return cqs.AddCQCode(c)
+}
+
+// AddCQTTS 发送文字转语音消息
+func (cqs *CQSend) AddCQTTS(text string) *CQSend {
+	c := NewCQTTS(text)
 	return cqs.AddCQCode(c)
 }
 
@@ -384,6 +435,7 @@ func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) {
 	}
 	msg, cards, forward := r.tidyCQCode(cqs.cqm)
 
+	fmt.Println(msg, cards, forward)
 	if msg != "" {
 		r.resp.pushMsg(userID, groupID, msg, false)
 	}
@@ -393,13 +445,8 @@ func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) {
 	}
 
 	// 合并转发只能对群聊发送， go-cqhttp 未提供相关接口
-	if groupID > 0 {
-		for _, f := range forward {
-			if groupID <= 0 {
-				continue
-			}
-			r.resp.pushGroupForwardMsg(groupID, f)
-		}
+	if len(forward) > 0 {
+		r.resp.pushGroupForwardMsg(userID, groupID, forward)
 	}
 }
 

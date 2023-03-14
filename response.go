@@ -1,6 +1,9 @@
 package rbq
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 // ApiReq 向 cqhttp 接口发送消息的消息体格式
 type ApiReq struct {
@@ -22,8 +25,13 @@ type RespGroupMsg struct {
 }
 
 type RespGroupForwardMsg struct {
-	GroupId  int64      `json:"group_id"`
-	Messages *CQForward `json:"messages"`
+	GroupId  int64     `json:"group_id"`
+	Messages []*CQCode `json:"messages"`
+}
+
+type RespPrivateForwardMsg struct {
+	UserId   int64     `json:"user_id"`
+	Messages []*CQCode `json:"messages"`
 }
 
 type RespGroupForwardMsgNode struct {
@@ -65,18 +73,34 @@ func (ar *ApiReq) pushMsg(userId, groupId int64, message string, autoEscape bool
 	return
 }
 
-func (ar *ApiReq) pushGroupForwardMsg(groupId int64, messages *CQCode) {
-	// TODO: 未完成
-	//ar.Action = "send_group_forward_msg"
-	//ar.Params = RespGroupForwardMsg{
-	//	groupId,
-	//	messages,
-	//}
-	//j, err := json.Marshal(ar)
-	//if err != nil {
-	//	log.Println(err)
-	//	return
-	//}
-	//sendDataToCQHTTP(j)
-	//return
+func (ar *ApiReq) pushGroupForwardMsg(userId, groupId int64, messages []*CQCode) {
+	for _, msg := range messages {
+		if msg.Type != "node" {
+			log.Println("forward msg type error")
+			return
+		}
+	}
+
+	if groupId > 0 {
+		ar.Action = "send_group_forward_msg"
+		ar.Params = RespGroupForwardMsg{
+			groupId,
+			messages,
+		}
+	} else {
+		ar.Action = "send_private_forward_msg"
+		ar.Params = RespPrivateForwardMsg{
+			userId,
+			messages,
+		}
+	}
+	j, err := json.Marshal(ar)
+
+	fmt.Println(string(j))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	sendDataToCQHTTP(j)
+	return
 }
