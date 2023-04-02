@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -55,12 +56,20 @@ func connectToWS(h string, p string) *websocket.Conn {
 }
 
 var recvChan = make(chan []byte, 100)
+var wsRespMap = &sync.Map{}
+var maxRespWaitTime = 5 * time.Second
 
 func recvDataFromCQHTTP() {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
+			continue
+		}
+		//fmt.Println(string(message))
+		echo := json.Get(message, "echo").ToString()
+		if echo != "" {
+			wsRespMap.Store(echo, message)
 			continue
 		}
 		recvChan <- message
@@ -70,12 +79,27 @@ func getDataFromRecvChan() []byte {
 	return <-recvChan
 }
 
-func sendDataToCQHTTP(data []byte) {
+func sendDataToCQHTTP(data []byte, echo string) []byte {
 	err := conn.WriteMessage(websocket.TextMessage, data)
 	if err != nil {
 		log.Println("write:", err)
-		return
+		return []byte("")
 	}
+	if echo != "" {
+		startTime := time.Now()
+		for {
+			resp, ok := wsRespMap.Load(echo)
+			if ok {
+				wsRespMap.Delete(echo)
+				return resp.([]byte)
+			}
+			if time.Now().Sub(startTime) > maxRespWaitTime {
+				return []byte("api超时未响应")
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	return []byte("")
 }
 
 func listenConn() {

@@ -1,7 +1,6 @@
 package rbq
 
 import (
-	"fmt"
 	"github.com/buger/jsonparser"
 	"log"
 	"regexp"
@@ -66,6 +65,10 @@ func (cqr CQRecv) GetCQRecord() *CQRecord {
 		return r[0]
 	}
 	return nil
+}
+
+func (cqr CQRecv) GetCQAt() []*CQAt {
+	return coverCQIToSepType[*CQAt](cqr.GetCQCodeByType("at"))
 }
 
 // GetCQVideo 获取视频消息
@@ -139,6 +142,12 @@ func newCQSend() *CQSend {
 		cq:  make([]*CQCode, 0, 10),
 		cqm: make(map[string][]*CQCode),
 	}
+}
+
+func (cqs *CQSend) cqReset() {
+	cqs.cq = make([]*CQCode, 0, 10)
+	cqs.cqm = make(map[string][]*CQCode)
+	cqs.err = make([]error, 0, 10)
 }
 
 // AddCQCode 添加CQ码
@@ -299,6 +308,7 @@ type MessageHandle struct {
 	*CQSend
 	recv *RecvNormalMsg
 	rep  *ReplyMessage
+	nrf  bool // not reset flag，是否在发送消息后对消息执行复位操作
 }
 
 // decodeMessage 解析消息，将消息中的CQ码和纯文本分离并将CQ码解析为结构体
@@ -351,22 +361,39 @@ func (c *MessageHandle) GetMessageId() int64 {
 //	//c.rep.AddReply(id)
 //}
 
+// NotReset 发送消息后不执行复位操作
+func (c *MessageHandle) NotReset() {
+	c.nrf = true
+}
+
+func (c *MessageHandle) reset() {
+	if !c.nrf {
+		c.cqReset()
+	}
+}
+
 // Reply 发送消息，默认向消息来源发送，如群，私聊
-func (c *MessageHandle) Reply(ss ...string) {
+func (c *MessageHandle) Reply(ss ...string) (int64, string, error) {
 	for _, s := range ss {
 		c.AddCQCode(NewCQText(s))
 	}
-	c.rep.send(c.recv.UserId, c.recv.GroupId, c.CQSend)
+	msgId, fId, err := c.rep.send(c.recv.UserId, c.recv.GroupId, c.CQSend)
+	c.reset()
+	return msgId, fId, err
 }
 
 // SendToPrivate 向指定私聊发送消息
-func (c *MessageHandle) SendToPrivate(userId int64) {
-	c.rep.send(userId, 0, c.CQSend)
+func (c *MessageHandle) SendToPrivate(userId int64) (int64, string, error) {
+	msgId, fId, err := c.rep.send(userId, 0, c.CQSend)
+	c.reset()
+	return msgId, fId, err
 }
 
 // SendToGroup 向指定群聊发送消息
-func (c *MessageHandle) SendToGroup(groupId int64) {
-	c.rep.send(0, groupId, c.CQSend)
+func (c *MessageHandle) SendToGroup(groupId int64) (int64, string, error) {
+	msgId, fId, err := c.rep.send(0, groupId, c.CQSend)
+	c.reset()
+	return msgId, fId, err
 }
 
 // RecvNormalMsg 接受的消息结构体类型
@@ -404,8 +431,6 @@ func parseMessageBytes(recv []byte) *RecvNormalMsg {
 		return nil
 	}
 
-	fmt.Println(postType)
-
 	if postType == "message" {
 		var recvMsg *RecvNormalMsg
 		err2 := json.Unmarshal(recv, &recvMsg)
@@ -420,34 +445,43 @@ func parseMessageBytes(recv []byte) *RecvNormalMsg {
 }
 
 type ReplyMessage struct {
-	resp *ApiReq
 }
 
 func newReplyMessage() *ReplyMessage {
-	return &ReplyMessage{
-		resp: &ApiReq{},
-	}
+	return &ReplyMessage{}
 }
 
-func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) {
+func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) (int64, string, error) {
 	for _, err := range cqs.err {
 		log.Println(err)
 	}
+
 	msg, cards, forward := r.tidyCQCode(cqs.cqm)
 
-	fmt.Println(msg, cards, forward)
+	// 每次只会 send 一条消息，如果有多条消息可以send，会被忽略
+	var msgId int64
+	var forwardId string
+	var err error
 	if msg != "" {
-		r.resp.pushMsg(userID, groupID, msg, false)
+		msgId, err = Api.SendMsg(userID, groupID, msg, false)
 	}
 
 	for _, card := range cards {
-		r.resp.pushMsg(userID, groupID, card, false)
+		if msgId != 0 || err != nil {
+			log.Println("发送卡片已忽略，已有其他消息发送")
+			continue
+		}
+		msgId, err = Api.SendMsg(userID, groupID, card, false)
 	}
 
 	// 合并转发只能对群聊发送， go-cqhttp 未提供相关接口
 	if len(forward) > 0 {
-		r.resp.pushGroupForwardMsg(userID, groupID, forward)
+		if msgId == 0 && err == nil {
+			msgId, forwardId, err = Api.SendForwardMsg(userID, groupID, forward)
+		}
+		log.Println("发送合并内容已忽略，已有其他消息发送")
 	}
+	return msgId, forwardId, err
 }
 
 func (r *ReplyMessage) tidyCQCode(cqm map[string][]*CQCode) (string, []string, []*CQCode) {
