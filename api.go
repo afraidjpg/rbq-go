@@ -93,12 +93,6 @@ type cqApi struct {
 
 // GetLoginInfo 获取当前登录的机器人的信息, 在机器人启动阶段会读取并自动载入 GlobalVar
 func (a *cqApi) GetLoginInfo() (int64, string, error) {
-	qq := GlobalVar.botQQ
-	nickname := GlobalVar.botNickname
-	if qq != 0 && nickname != "" {
-		return qq, nickname, nil
-	}
-
 	req := &apiReq{
 		Action: "get_login_info",
 		Params: nil,
@@ -107,8 +101,8 @@ func (a *cqApi) GetLoginInfo() (int64, string, error) {
 	if err != nil {
 		return 0, "", err
 	}
-	qq = json.Get(resp, "user_id").ToInt64()
-	nickname = json.Get(resp, "nickname").ToString()
+	qq := json.Get(resp, "user_id").ToInt64()
+	nickname := json.Get(resp, "nickname").ToString()
 	GlobalVar.botQQ = qq
 	GlobalVar.botNickname = nickname
 	return qq, nickname, nil
@@ -205,6 +199,132 @@ func (a *cqApi) SetOnlineDevice(model, modelShow string) error {
 	return err
 }
 
+// GetOnlineClients 获取当前登录的机器人的在线客户端列表
+// noCache: 是否不使用缓存, true 不使用缓存，false 使用缓存
+func (a *cqApi) GetOnlineClients(noCache bool) ([]*OnlineClient, error) {
+	req := &apiReq{
+		Action: "get_online_clients",
+		Params: struct {
+			NoCache bool `json:"no_cache"`
+		}{
+			NoCache: noCache,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	clients := json.Get(resp, "clients").ToString()
+	var onlineClients []*OnlineClient
+	err = json.UnmarshalFromString(clients, &onlineClients)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	GlobalVar.onlineClients = onlineClients
+	return onlineClients, nil
+}
+
+// GetStrangerInfo 获取陌生人信息
+// userId: 陌生人 QQ 号
+// noCache: 是否不使用缓存, true 不使用缓存，false 使用缓存
+func (a *cqApi) GetStrangerInfo(userId int64, noCache bool) (*StrangerInfo, error) {
+	req := &apiReq{
+		Action: "get_stranger_info",
+		Params: struct {
+			UserID  int64 `json:"user_id"`
+			NoCache bool  `json:"no_cache"`
+		}{
+			UserID:  userId,
+			NoCache: noCache,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	info := &StrangerInfo{}
+	err = json.Unmarshal(resp, info)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return info, nil
+}
+
+// GetFriendList 获取好友列表
+func (a *cqApi) GetFriendList() ([]*FriendInfo, error) {
+	req := &apiReq{
+		Action: "get_friend_list",
+		Params: nil,
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var friendList []*FriendInfo
+	fmt.Println()
+	err = json.Unmarshal(resp, &friendList)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	GlobalVar.friendList = friendList
+	return friendList, nil
+}
+
+// GetUnidirectionalFriendList 获取单向好友列表
+func (a *cqApi) GetUnidirectionalFriendList() ([]*UnidirectionalFriendInfo, error) {
+	req := &apiReq{
+		Action: "get_unidirectional_friend_list",
+		Params: nil,
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var friendList []*UnidirectionalFriendInfo
+	err = json.Unmarshal(resp, &friendList)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	GlobalVar.unidirectionalFriendList = friendList
+	return friendList, nil
+}
+
+// DeleteFriend 删除好友
+func (a *cqApi) DeleteFriend(userId int64) error {
+	fi := GlobalVar.friendList.Search(userId)
+	if fi == nil {
+		return newApiError("delete_friend", "好友不存在")
+	}
+	req := &apiReq{
+		Action: "delete_friend",
+		Params: struct {
+			UserID int64 `json:"user_id"`
+		}{
+			UserID: userId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// DeleteUnidirectionalFriend 删除单向好友
+func (a *cqApi) DeleteUnidirectionalFriend(userId int64) error {
+	ufi := GlobalVar.unidirectionalFriendList.Search(userId)
+	if ufi == nil {
+		return newApiError("delete_unidirectional_friend", "单向好友不存在")
+	}
+	req := &apiReq{
+		Action: "delete_unidirectional_friend",
+		Params: struct {
+			UserID int64 `json:"user_id"`
+		}{
+			UserID: userId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
 // SendMsg 发送消息
 func (a *cqApi) SendMsg(userId, groupId int64, message string, autoEscape bool) (int64, error) {
 	req := &apiReq{
@@ -274,6 +394,28 @@ func (a *cqApi) SendGroupMsg(groupId int64, message string, autoEscape bool) (in
 	return json.Get(resp, "message_id").ToInt64(), nil
 }
 
+// getMsg 获取消息
+func (a *cqApi) getMsg(messageId int64) (*MessageInfoByMsgId, error) {
+	req := &apiReq{
+		Action: "get_msg",
+		Params: struct {
+			MessageID int64 `json:"message_id"`
+		}{
+			MessageID: messageId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var msgInfo MessageInfoByMsgId
+	err = json.Unmarshal(resp, &msgInfo)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return &msgInfo, nil
+}
+
 // SendForwardMsg 发送合并转发消息的快速接口，根据 userId 判断是私聊还是群聊
 func (a *cqApi) SendForwardMsg(userId, groupId int64, forward []*CQCode) (int64, string, error) {
 	if userId > 0 {
@@ -324,9 +466,6 @@ func (a *cqApi) SendGroupForwardMsg(groupId int64, forward []*CQCode) (int64, st
 
 // CanSendImage 当前机器人是否可以发送图片
 func (a *cqApi) CanSendImage() (bool, error) {
-	if GlobalVar.canSendImg {
-		return true, nil
-	}
 	req := &apiReq{
 		Action: "can_send_image",
 		Params: nil,
@@ -342,9 +481,6 @@ func (a *cqApi) CanSendImage() (bool, error) {
 
 // CanSendRecord 当前机器人是否可以发送语音
 func (a *cqApi) CanSendRecord() (bool, error) {
-	if GlobalVar.canSendRecord {
-		return true, nil
-	}
 	req := &apiReq{
 		Action: "can_send_record",
 		Params: nil,

@@ -1,5 +1,7 @@
 package rbq
 
+import "log"
+
 type App struct {
 }
 
@@ -14,18 +16,29 @@ func (a *App) Run(cqAddr string) {
 }
 
 func (a *App) initBot() {
-	_, _, err := Api.GetLoginInfo() // 获取机器人信息
+	qq, nn, err := Api.GetLoginInfo() // 获取机器人信息
 	if err != nil {
 		panic(err)
 	}
-	_, err = Api.CanSendRecord() // 获取机器人是否可以发送语音
+	log.Printf("加载机器人信息成功，QQ号: %d, 昵称: %s\n", qq, nn)
+
+	canSR, err := Api.CanSendRecord() // 获取机器人是否可以发送语音
 	if err != nil {
 		panic(err)
 	}
-	_, err = Api.CanSendImage() // 获取机器人是否可以发送图片
+	log.Println("加载机器人语音发送状态成功，当前状态: ", canSR)
+
+	conSI, err := Api.CanSendImage() // 获取机器人是否可以发送图片
 	if err != nil {
 		panic(err)
 	}
+	log.Println("加载机器人图片发送状态成功，当前状态: ", conSI)
+
+	fl, err := Api.GetFriendList()
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("加载好友列表成功，当前共加载 %d 位好友\n", len(fl))
 }
 
 func NewApp() *App {

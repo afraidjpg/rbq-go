@@ -55,6 +55,23 @@ func connectToWS(h string, p string) *websocket.Conn {
 	return cc
 }
 
+var wsConnLock = &sync.Mutex{}
+var tryConnFlag = false
+
+func reconnectToWS(h string, p string) {
+	if !wsConnLock.TryLock() {
+		time.Sleep(1 * time.Millisecond)
+		for tryConnFlag {
+			time.Sleep(1 * time.Millisecond)
+		}
+		return
+	}
+	defer wsConnLock.Unlock()
+	tryConnFlag = true
+	conn = connectToWS(h, p)
+	tryConnFlag = false
+}
+
 var recvChan = make(chan []byte, 100)
 var wsRespMap = &sync.Map{}
 var maxRespWaitTime = 5 * time.Second
@@ -64,6 +81,7 @@ func recvDataFromCQHTTP() {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
+			reconnectToWS(wsHost, wsPort)
 			continue
 		}
 		//fmt.Println(string(message))
@@ -80,9 +98,10 @@ func getDataFromRecvChan() []byte {
 }
 
 func sendDataToCQHTTP(data []byte, echo string) []byte {
-	err := conn.WriteMessage(websocket.TextMessage, data)
+	err := WriteToWs(data)
 	if err != nil {
 		log.Println("write:", err)
+		reconnectToWS(wsHost, wsPort)
 		return []byte("")
 	}
 	if echo != "" {
@@ -104,11 +123,20 @@ func sendDataToCQHTTP(data []byte, echo string) []byte {
 
 func listenConn() {
 	for {
-		err := conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+		err := WriteToWs([]byte("ping"))
 		if err != nil {
 			log.Println("连接已断开，正在重连...")
-			conn = connectToWS(wsHost, wsPort)
+			reconnectToWS(wsHost, wsPort)
 		}
 		time.Sleep(5 * time.Second)
 	}
+}
+
+var wsrLock = &sync.Mutex{}
+
+func WriteToWs(data []byte) error {
+	wsrLock.Lock()
+	defer wsrLock.Unlock()
+	err := conn.WriteMessage(websocket.TextMessage, data)
+	return err
 }

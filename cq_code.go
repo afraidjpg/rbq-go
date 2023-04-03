@@ -83,6 +83,10 @@ func cqIsPrefix(s string, pre string, pres ...string) bool {
 	return ret
 }
 
+func cqCheckFileExist(file string) bool {
+	return true
+}
+
 type CQCodeError struct {
 	e string
 	t string
@@ -315,7 +319,15 @@ func (cq *CQCode) String() string {
 	for i, v := range cq.Data {
 		// 下载线程数
 		if v.K == "c" {
-			v.V = cqValidConcurrency(v.V.(int))
+			var c int
+			if vv, ok := v.V.(string); ok {
+				c, _ = strconv.Atoi(vv)
+			} else if _, ok := v.V.(int); !ok {
+				c = 0
+			} else {
+				c = v.V.(int)
+			}
+			v.V = cqValidConcurrency(c)
 		}
 		s.WriteString(v.K)
 		s.WriteString("=")
@@ -325,7 +337,6 @@ func (cq *CQCode) String() string {
 		}
 	}
 	s.WriteString("]")
-	fmt.Println(s.String())
 	return s.String()
 }
 
@@ -673,6 +684,9 @@ func NewCQImage(file, type_ string, subType int, cache bool, id int64, c int) (*
 	val := map[string]any{}
 	if !cqIsPrefix(file, "http://", "https://", "file://", "base64://") {
 		return nil, newCQError("image", "file必须以 [http://, https://, file://, base64://] 开头")
+	}
+	if !cqCheckFileExist(file) {
+		return nil, newCQError("image", "file不存在")
 	}
 	val["file"] = file
 	if type_ == CQImageTypeFlash || type_ == CQImageTypeShow {
