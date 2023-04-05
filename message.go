@@ -437,7 +437,7 @@ func parseMessageBytes(recv []byte) *RecvNormalMsg {
 		if err2 != nil {
 			return nil
 		}
-
+		log.Println("接收到消息：", recvMsg.Message)
 		return recvMsg
 	}
 
@@ -463,6 +463,7 @@ func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) (int64, string, 
 	var forwardId string
 	var err error
 	if msg != "" {
+		log.Println("发送消息：", msg)
 		msgId, err = Api.SendMsg(userID, groupID, msg, false)
 	}
 
@@ -471,15 +472,18 @@ func (r *ReplyMessage) send(userID, groupID int64, cqs *CQSend) (int64, string, 
 			log.Println("发送卡片已忽略，已有其他消息发送")
 			continue
 		}
+		log.Println("发送消息：", card)
 		msgId, err = Api.SendMsg(userID, groupID, card, false)
 	}
 
 	// 合并转发只能对群聊发送， go-cqhttp 未提供相关接口
 	if len(forward) > 0 {
 		if msgId == 0 && err == nil {
+			log.Println("发送合并转发消息")
 			msgId, forwardId, err = Api.SendForwardMsg(userID, groupID, forward)
+		} else {
+			log.Println("发送合并内容已忽略，已有其他消息发送")
 		}
-		log.Println("发送合并内容已忽略，已有其他消息发送")
 	}
 	return msgId, forwardId, err
 }

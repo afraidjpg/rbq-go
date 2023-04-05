@@ -692,10 +692,10 @@ func NewCQImage(file, type_ string, subType int, cache bool, id int64, c int) (*
 	if type_ == CQImageTypeFlash || type_ == CQImageTypeShow {
 		val["type"] = type_
 	}
-	if subType >= 0 && subType <= 13 {
+	if subType > 0 && subType <= 13 {
 		val["subType"] = subType
 	}
-	if id >= CQImageIDNormal || id <= CQImageIDSeek {
+	if id >= CQImageIDNormal && id <= CQImageIDSeek {
 		val["id"] = id
 	}
 	val["cache"] = cache

@@ -261,7 +261,6 @@ func (a *cqApi) GetFriendList() ([]*FriendInfo, error) {
 		return nil, err
 	}
 	var friendList []*FriendInfo
-	fmt.Println()
 	err = json.Unmarshal(resp, &friendList)
 	if err != nil {
 		return nil, newApiError(req.Action, err.Error())
@@ -394,8 +393,8 @@ func (a *cqApi) SendGroupMsg(groupId int64, message string, autoEscape bool) (in
 	return json.Get(resp, "message_id").ToInt64(), nil
 }
 
-// getMsg 获取消息
-func (a *cqApi) getMsg(messageId int64) (*MessageInfoByMsgId, error) {
+// GetMsg 获取消息
+func (a *cqApi) GetMsg(messageId int64) (*MessageInfoByMsgId, error) {
 	req := &apiReq{
 		Action: "get_msg",
 		Params: struct {
@@ -414,6 +413,80 @@ func (a *cqApi) getMsg(messageId int64) (*MessageInfoByMsgId, error) {
 		return nil, newApiError(req.Action, err.Error())
 	}
 	return &msgInfo, nil
+}
+
+// DeleteMsg 撤回消息
+func (a *cqApi) DeleteMsg(messageId int64) error {
+	req := &apiReq{
+		Action: "delete_msg",
+		Params: struct {
+			MessageID int64 `json:"message_id"`
+		}{
+			MessageID: messageId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// MarkMsgAsRead 将消息标记为已读
+func (a *cqApi) MarkMsgAsRead(messageId int64) error {
+	req := &apiReq{
+		Action: "mark_msg_as_read",
+		Params: struct {
+			MessageID int64 `json:"message_id"`
+		}{
+			MessageID: messageId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// GetForwardMsg 获取合并转发消息
+func (a *cqApi) GetForwardMsg(messageId int64) ([]*CQCode, error) {
+	req := &apiReq{
+		Action: "get_forward_msg",
+		Params: struct {
+			MessageID int64 `json:"message_id"`
+		}{
+			MessageID: messageId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var forward []*CQCode
+	err = json.Unmarshal(resp, &forward)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return forward, nil
+}
+
+// GetGroupMsgHistory 获取群消息历史
+func (a *cqApi) GetGroupMsgHistory(groupId int64, messageSeq int64) ([]*MessageInfoByMsgId, error) {
+	req := &apiReq{
+		Action: "get_group_msg_history",
+		Params: struct {
+			GroupID    int64 `json:"group_id"`
+			MessageSeq int64 `json:"message_seq"`
+		}{
+			GroupID:    groupId,
+			MessageSeq: messageSeq,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var msgInfo []*MessageInfoByMsgId
+	err = json.Unmarshal(resp, &msgInfo)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return msgInfo, nil
 }
 
 // SendForwardMsg 发送合并转发消息的快速接口，根据 userId 判断是私聊还是群聊
