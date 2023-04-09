@@ -2,6 +2,7 @@ package rbq
 
 import (
 	"fmt"
+	"github.com/afraidjpg/rbq-go/internal"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
@@ -16,7 +17,6 @@ var wsHost = ""
 var wsPort = ""
 
 func listenCQHTTP(cqAddr string) {
-
 	if cqAddr == "" {
 		cqAddr = "127.0.0.1:8080"
 	}
@@ -30,6 +30,9 @@ func listenCQHTTP(cqAddr string) {
 	}
 	wsHost = u.Hostname()
 	wsPort = u.Port()
+	internal.CQConnProtocol = u.Scheme
+	internal.CQConnHost = wsHost
+	internal.CQConnPort = wsPort
 	conn = connectToWS(wsHost, wsPort)
 	go listenConn()
 	go recvDataFromCQHTTP()

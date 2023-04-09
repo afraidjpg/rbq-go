@@ -2,7 +2,7 @@ package rbq
 
 import (
 	"fmt"
-	"github.com/afraidjpg/rbq-go/util"
+	"github.com/afraidjpg/rbq-go/internal"
 	"strings"
 )
 
@@ -12,7 +12,7 @@ func init() {
 	Api = newBotApi(&cqApi{})
 }
 
-// ApiWrapper 进行一层包装，使得 cqApi 的方法可以直接调用，同时确保全局只能有一个 Api 实例
+// ApiWrapper 进行一层包装，使得 cqApi 的方法可以直接调用，同时确保全局只能有一个 ApiWrapper 实例
 type ApiWrapper struct {
 	*cqApi
 }
@@ -52,7 +52,7 @@ func (a *apiReq) Send(needResp bool) ([]byte, error) {
 		return []byte(""), newApiError("", "action is empty")
 	}
 	if needResp {
-		a.Echo = util.RandomName()
+		a.Echo = internal.RandomName()
 	}
 
 	j, err := json.Marshal(a)
@@ -407,12 +407,14 @@ func (a *cqApi) GetMsg(messageId int64) (*MessageInfoByMsgId, error) {
 	if err != nil {
 		return nil, err
 	}
-	var msgInfo MessageInfoByMsgId
+	var msgInfo *MessageInfoByMsgId
 	err = json.Unmarshal(resp, &msgInfo)
 	if err != nil {
 		return nil, newApiError(req.Action, err.Error())
 	}
-	return &msgInfo, nil
+	msgInfo.CQRecv = newCQRecv()
+	msgInfo.decodeMessage(msgInfo.Message) // 对消息的cq码部分进行解码
+	return msgInfo, nil
 }
 
 // DeleteMsg 撤回消息
@@ -444,49 +446,31 @@ func (a *cqApi) MarkMsgAsRead(messageId int64) error {
 }
 
 // GetForwardMsg 获取合并转发消息
-func (a *cqApi) GetForwardMsg(messageId int64) ([]*CQCode, error) {
+// forwardId 合并转发消息的 ID, 可以通过 context.GetCQForward().GetId() 获取
+func (a *cqApi) GetForwardMsg(forwardId string) ([]*ForwardMessageNode, error) {
 	req := &apiReq{
 		Action: "get_forward_msg",
 		Params: struct {
-			MessageID int64 `json:"message_id"`
+			MessageID string `json:"message_id"`
 		}{
-			MessageID: messageId,
+			MessageID: forwardId,
 		},
 	}
 	resp, err := req.Send(true)
 	if err != nil {
 		return nil, err
 	}
-	var forward []*CQCode
-	err = json.Unmarshal(resp, &forward)
+	message := json.Get(resp, "messages").ToString()
+	var forward []*ForwardMessageNode
+	err = json.UnmarshalFromString(message, &forward)
 	if err != nil {
 		return nil, newApiError(req.Action, err.Error())
+	}
+	for _, v := range forward {
+		v.CQRecv = newCQRecv()
+		v.decodeMessage(v.Content) // 对消息的cq码部分进行解码
 	}
 	return forward, nil
-}
-
-// GetGroupMsgHistory 获取群消息历史
-func (a *cqApi) GetGroupMsgHistory(groupId int64, messageSeq int64) ([]*MessageInfoByMsgId, error) {
-	req := &apiReq{
-		Action: "get_group_msg_history",
-		Params: struct {
-			GroupID    int64 `json:"group_id"`
-			MessageSeq int64 `json:"message_seq"`
-		}{
-			GroupID:    groupId,
-			MessageSeq: messageSeq,
-		},
-	}
-	resp, err := req.Send(true)
-	if err != nil {
-		return nil, err
-	}
-	var msgInfo []*MessageInfoByMsgId
-	err = json.Unmarshal(resp, &msgInfo)
-	if err != nil {
-		return nil, newApiError(req.Action, err.Error())
-	}
-	return msgInfo, nil
 }
 
 // SendForwardMsg 发送合并转发消息的快速接口，根据 userId 判断是私聊还是群聊
@@ -537,6 +521,61 @@ func (a *cqApi) SendGroupForwardMsg(groupId int64, forward []*CQCode) (int64, st
 	return json.Get(resp, "message_id").ToInt64(), json.Get(resp, "forward_id").ToString(), nil
 }
 
+// GetGroupMsgHistory 获取群消息历史
+// groupId 为群号
+// messageSeq 为消息序号起始ID
+func (a *cqApi) GetGroupMsgHistory(groupId int64, messageSeq int64) ([]*MessageInfoByMsgId, error) {
+	req := &apiReq{
+		Action: "get_group_msg_history",
+		Params: struct {
+			GroupID    int64 `json:"group_id"`
+			MessageSeq int64 `json:"message_seq"`
+		}{
+			GroupID:    groupId,
+			MessageSeq: messageSeq,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var msgInfo []*MessageInfoByMsgId
+	message := json.Get(resp, "messages").ToString()
+	err = json.UnmarshalFromString(message, &msgInfo)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	for _, v := range msgInfo {
+		v.CQRecv = newCQRecv()
+		v.Group = true
+		v.decodeMessage(v.Message) // 对消息的cq码部分进行解码
+	}
+	return msgInfo, nil
+}
+
+// GetImage 获取图片
+// file 缓存的图片文件名，可以通过 context.GetCQImage()[i].GetFile() 获取
+func (a *cqApi) GetImage(file string) (*ImageInfo, error) {
+	req := &apiReq{
+		Action: "get_image",
+		Params: struct {
+			File string `json:"file"`
+		}{
+			File: file,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var imageInfo *ImageInfo
+	err = json.Unmarshal(resp, &imageInfo)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return imageInfo, nil
+}
+
 // CanSendImage 当前机器人是否可以发送图片
 func (a *cqApi) CanSendImage() (bool, error) {
 	req := &apiReq{
@@ -552,6 +591,57 @@ func (a *cqApi) CanSendImage() (bool, error) {
 	return yes, nil
 }
 
+// OcrImage 识别图片文字
+// file 缓存的图片文件名，可以通过 context.GetCQImage()[i].GetFile() 获取
+func (a *cqApi) OcrImage(file string) (*ImageOrcResult, error) {
+	req := &apiReq{
+		Action: "ocr_image",
+		Params: struct {
+			Image string `json:"image"`
+		}{
+			Image: file,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var ocr *ImageOrcResult
+	err = json.Unmarshal(resp, &ocr)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return ocr, nil
+}
+
+// todo GetRecord 获取语音 该api暂未被支持
+// file 缓存的语音文件名
+// out_format 输出格式，目前支持 mp3, amr, m4a, wma, spx, ogg, wav, flac
+func (a *cqApi) GetRecord(file, outFormat string) (string, error) {
+	return "", newApiError("get_record", "该api暂未被支持")
+	//for _, v := range apiRecordFormatTypes {
+	//	if v == outFormat {
+	//		break
+	//	}
+	//	return "", newApiError("get_record", "out_format 不支持")
+	//}
+	//req := &apiReq{
+	//	Action: "get_record",
+	//	Params: struct {
+	//		File      string `json:"file"`
+	//		OutFormat string `json:"out_format"`
+	//	}{
+	//		File:      file,
+	//		OutFormat: outFormat,
+	//	},
+	//}
+	//resp, err := req.Send(true)
+	//if err != nil {
+	//	return "", err
+	//}
+	//return json.Get(resp, "file").ToString(), nil
+}
+
 // CanSendRecord 当前机器人是否可以发送语音
 func (a *cqApi) CanSendRecord() (bool, error) {
 	req := &apiReq{
@@ -565,4 +655,588 @@ func (a *cqApi) CanSendRecord() (bool, error) {
 	yes := json.Get(resp, "yes").ToBool()
 	GlobalVar.canSendRecord = yes
 	return yes, nil
+}
+
+// SetFriendAddRequest 处理加好友请求
+// flag 加好友请求的 flag（需从上报的数据中获得）
+// approve 是否同意请求
+// remark 添加后的好友备注（仅在同意时有效）
+func (a *cqApi) SetFriendAddRequest(flag string, approve bool, remark string) error {
+	req := &apiReq{
+		Action: "set_friend_add_request",
+		Params: struct {
+			Flag    string `json:"flag"`
+			Approve bool   `json:"approve"`
+			Remark  string `json:"remark"`
+		}{
+			Flag:    flag,
+			Approve: approve,
+			Remark:  remark,
+		},
+	}
+	_, err := req.Send(false)
+	if err != nil {
+		return err
+	}
+	// 如果同意请求，则刷新好友列表
+	if approve == true {
+		_, err := a.GetFriendList()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SetGroupAddRequest 处理加群请求／邀请
+// flag 加群请求的 flag（需从上报的数据中获得）
+// subType add 或 invite，请求类型（需要和上报消息中的 sub_type 字段相符）
+// approve 是否同意请求／邀请
+// rejectReason 拒绝理由（仅在拒绝时有效）
+func (a *cqApi) SetGroupAddRequest(flag, subType string, approve bool, rejectReason string) error {
+	// todo 需要检查权限，只有群主或者管理能够处理
+	req := &apiReq{
+		Action: "set_group_add_request",
+		Params: struct {
+			Flag         string `json:"flag"`
+			SubType      string `json:"sub_type"`
+			Approve      bool   `json:"approve"`
+			RejectReason string `json:"reject_reason"`
+		}{
+			Flag:         flag,
+			SubType:      subType,
+			Approve:      approve,
+			RejectReason: rejectReason,
+		},
+	}
+	_, err := req.Send(false)
+	if err != nil {
+		return err
+	}
+	if approve == true {
+		// 如果同意请求，则刷新群列表
+		_, err := a.GetGroupList(true)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetGroupInfo 获取群信息
+// groupId 群号
+// noCache 是否不使用缓存（使用缓存可能更新不及时，但响应更快）
+func (a *cqApi) GetGroupInfo(groupId int64, noCache bool) (*GroupInfo, error) {
+	req := &apiReq{
+		Action: "get_group_info",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+			NoCache bool  `json:"no_cache"`
+		}{
+			GroupID: groupId,
+			NoCache: noCache,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var groupInfo *GroupInfo
+	err = json.Unmarshal(resp, &groupInfo)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return groupInfo, nil
+}
+
+// GetGroupList 获取群列表
+// noCache 是否不使用缓存（使用缓存可能更新不及时，但响应更快）
+func (a *cqApi) GetGroupList(noCache bool) ([]*GroupInfo, error) {
+	req := &apiReq{
+		Action: "get_group_list",
+		Params: struct {
+			NoCache bool `json:"no_cache"`
+		}{
+			NoCache: noCache,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var groupList []*GroupInfo
+	err = json.Unmarshal(resp, &groupList)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	GlobalVar.groupList = groupList
+	return groupList, nil
+}
+
+// GetGroupMemberInfo 获取群成员信息
+// groupId 群号
+// userId QQ 号
+// noCache 是否不使用缓存（使用缓存可能更新不及时，但响应更快）
+func (a *cqApi) GetGroupMemberInfo(groupId, userId int64, noCache bool) (*GroupMemberInfo, error) {
+	req := &apiReq{
+		Action: "get_group_member_info",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+			UserID  int64 `json:"user_id"`
+			NoCache bool  `json:"no_cache"`
+		}{
+			GroupID: groupId,
+			UserID:  userId,
+			NoCache: noCache,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var groupMemberInfo *GroupMemberInfo
+	err = json.Unmarshal(resp, &groupMemberInfo)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return groupMemberInfo, nil
+}
+
+// GetGroupMemberList 获取群成员列表
+// groupId 群号
+// noCache 是否不使用缓存（使用缓存可能更新不及时，但响应更快）
+func (a *cqApi) GetGroupMemberList(groupId int64, noCache bool) ([]*GroupMemberInfo, error) {
+	req := &apiReq{
+		Action: "get_group_member_list",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+			NoCache bool  `json:"no_cache"`
+		}{
+			GroupID: groupId,
+			NoCache: noCache,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var groupMemberList []*GroupMemberInfo
+	err = json.Unmarshal(resp, &groupMemberList)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return groupMemberList, nil
+}
+
+// GetGroupHonorInfo 获取群荣誉信息
+// groupId 群号
+// honorType 荣誉类型，目前支持 talkative（龙王）、performer（群聊之火）、legend（群聊炽焰）、strong_newbie（冒尖小春笋）、emotion（快乐之源）
+// 传入 all 可获取所有荣誉信息
+func (a *cqApi) GetGroupHonorInfo(groupId int64, honorType string) (*GroupHonorInfo, error) {
+	req := &apiReq{
+		Action: "get_group_honor_info",
+		Params: struct {
+			GroupID  int64  `json:"group_id"`
+			HonorTyp string `json:"honor_type"`
+		}{
+			GroupID:  groupId,
+			HonorTyp: honorType,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var groupHonorInfo *GroupHonorInfo
+	err = json.Unmarshal(resp, &groupHonorInfo)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return groupHonorInfo, nil
+}
+
+// GetGroupSystemMsg 获取群系统消息
+func (a *cqApi) GetGroupSystemMsg() (*GroupSystemMsg, error) {
+	req := &apiReq{
+		Action: "get_group_system_msg",
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var groupSystemMsg *GroupSystemMsg
+	err = json.Unmarshal(resp, &groupSystemMsg)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return groupSystemMsg, nil
+}
+
+// GetEssenceMsgList 获取精华消息列表
+// groupId 群号
+func (a *cqApi) GetEssenceMsgList(groupId int64) ([]*EssenceMsg, error) {
+	req := &apiReq{
+		Action: "get_essence_msg_list",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+		}{
+			GroupID: groupId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var essenceMsgList []*EssenceMsg
+	err = json.Unmarshal(resp, &essenceMsgList)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return essenceMsgList, nil
+}
+
+// GetGroupAtAllRemain 获取群 @全体成员 剩余次数
+// groupId 群号
+func (a *cqApi) GetGroupAtAllRemain(groupId int64) (*GroupAtInfo, error) {
+	req := &apiReq{
+		Action: "get_group_at_all_remain",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+		}{
+			GroupID: groupId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var remain *GroupAtInfo
+	err = json.Unmarshal(resp, &remain)
+	if err != nil {
+		return nil, newApiError(req.Action, err.Error())
+	}
+	return remain, nil
+}
+
+// SetGroupName 设置群名
+// groupId 群号
+// newName 新群名
+func (a *cqApi) SetGroupName(groupId int64, newName string) error {
+	req := &apiReq{
+		Action: "set_group_name",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			NewName string `json:"new_name"`
+		}{
+			GroupID: groupId,
+			NewName: newName,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupPortrait 设置群头像
+// groupId 群号
+// file 图片文件路径
+func (a *cqApi) SetGroupPortrait(groupId int64, file string) error {
+	if err := internal.HasPrefix(file); err != nil {
+		return newApiError("set_group_portrait", err.Error())
+	}
+	req := &apiReq{
+		Action: "set_group_portrait",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			File    string `json:"file"`
+			Cache   int    `json:"cache"`
+		}{
+			GroupID: groupId,
+			File:    file,
+			Cache:   1,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupAdmin 设置群管理员
+// groupId 群号
+// userId QQ 号
+// enable true 为设置，false 为取消
+func (a *cqApi) SetGroupAdmin(groupId, userId int64, enable bool) error {
+	// TODO: 检查是否有权限，只有是群主时有权限
+	req := &apiReq{
+		Action: "set_group_admin",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+			UserID  int64 `json:"user_id"`
+			Enable  bool  `json:"enable"`
+		}{
+			GroupID: groupId,
+			UserID:  userId,
+			Enable:  enable,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupCard 设置群名片（群备注）
+// groupId 群号
+// userId QQ 号
+// card 群名片内容, 不填或空字符串表示删除群名片
+func (a *cqApi) SetGroupCard(groupId, userId int64, card string) error {
+	// TODO: 检查是否有权限，只能给权限小于等于自己的人设置
+	req := &apiReq{
+		Action: "set_group_card",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			UserID  int64  `json:"user_id"`
+			Card    string `json:"card"`
+		}{
+			GroupID: groupId,
+			UserID:  userId,
+			Card:    card,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupSpecialTitle 设置群组专属头衔
+// groupId 群号
+// userId QQ 号
+// specialTitle 专属头衔，不填或空字符串表示删除专属头衔
+// todo 经过测试好像没用？
+func (a *cqApi) SetGroupSpecialTitle(groupId, userId int64, specialTitle string) error {
+	req := &apiReq{
+		Action: "set_group_special_title",
+		Params: struct {
+			GroupID      int64  `json:"group_id"`
+			UserID       int64  `json:"user_id"`
+			SpecialTitle string `json:"special_title"`
+			Duration     int64  `json:"duration"` // 专属头衔有效期, 单位秒, -1 表示永久, 不过此项似乎没有效果 -- 来自官方文档
+		}{
+			GroupID:      groupId,
+			UserID:       userId,
+			SpecialTitle: specialTitle,
+			Duration:     -1,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupBan 群单人禁言
+// groupId 群号
+// userId QQ 号
+// duration 禁言时长，单位秒，0 表示取消禁言
+func (a *cqApi) SetGroupBan(groupId, userId, duration int64) error {
+	// TODO: 检查是否有权限，只能禁言比自己权限小的人
+	req := &apiReq{
+		Action: "set_group_ban",
+		Params: struct {
+			GroupID  int64 `json:"group_id"`
+			UserID   int64 `json:"user_id"`
+			Duration int64 `json:"duration"`
+		}{
+			GroupID:  groupId,
+			UserID:   userId,
+			Duration: duration,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupWholeBan 群全员禁言
+// groupId 群号
+// enable true 为开启，false 为关闭
+func (a *cqApi) SetGroupWholeBan(groupId int64, enable bool) error {
+	// todo 检查是否有权限，需要管理权或者群主权限
+	req := &apiReq{
+		Action: "set_group_whole_ban",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+			Enable  bool  `json:"enable"`
+		}{
+			GroupID: groupId,
+			Enable:  enable,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupAnonymousBan 群匿名用户禁言
+// groupId 群号
+// anonymous 可选, 要禁言的匿名用户对象（群消息上报的 anonymous 字段）
+// anonymousFlag 可选, 要禁言的匿名用户的 flag（需从群消息上报的数据中获得）
+// duration 禁言时长，单位秒，无法取消匿名用户禁言
+// anonymous 和 anonymous_flag 两者任选其一传入即可, 若都传入, 则使用 anonymous
+func (a *cqApi) SetGroupAnonymousBan(groupId int64, anonymous, anonymousFlag string, duration int64) error {
+	// todo 检查是否有权限，权限情况需要测试
+	req := &apiReq{
+		Action: "set_group_anonymous_ban",
+		Params: struct {
+			GroupID       int64  `json:"group_id"`
+			Anonymous     string `json:"anonymous"`
+			AnonymousFlag string `json:"anonymous_flag"`
+			Duration      int64  `json:"duration"`
+		}{
+			GroupID:       groupId,
+			Anonymous:     anonymous,
+			AnonymousFlag: anonymousFlag,
+			Duration:      duration,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetEssenceMsg 设置群精华消息
+// message_id 消息ID
+func (a *cqApi) SetEssenceMsg(messageId int64) error {
+	// todo 检查是否有权限，只有管理员以及以上有权限
+	req := &apiReq{
+		Action: "set_essence_msg",
+		Params: struct {
+			MessageID int64 `json:"message_id"`
+		}{
+			MessageID: messageId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// DeleteEssenceMsg 删除群精华消息
+// message_id 消息ID
+func (a *cqApi) DeleteEssenceMsg(messageId int64) error {
+	// todo 检查是否有权限，只有管理员以及以上有权限
+	req := &apiReq{
+		Action: "delete_essence_msg",
+		Params: struct {
+			MessageID int64 `json:"message_id"`
+		}{
+			MessageID: messageId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SendGroupSign 群打卡
+// groupId 群号
+func (a *cqApi) SendGroupSign(groupId int64) error {
+	req := &apiReq{
+		Action: "send_group_sign",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+		}{
+			GroupID: groupId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupAnonymous todo 设置群匿名设置 暂未被支持
+// groupId 群号
+// enable true 为开启，false 为关闭
+func (a *cqApi) SetGroupAnonymous(groupId int64, enable bool) error {
+	return newApiError("set_group_anonymous", "暂未被支持")
+}
+
+// SendGroupNotice 发送群公告
+// groupId 群号
+// content 公告内容
+// image 图片文件路径
+func (a *cqApi) SendGroupNotice(groupId int64, content, image string) error {
+	// todo 检查是否有权限，只有管理员以及以上有权限
+	if content == "" && image == "" {
+		return newApiError("_send_group_notice", "公告内容和公告图片不能同时为空")
+	}
+	if image != "" {
+		if err := internal.HasPrefix(image); err != nil {
+			return newApiError("_send_group_notice", err.Error())
+		}
+	}
+	req := &apiReq{
+		Action: "_send_group_notice",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			Content string `json:"content"`
+			Image   string `json:"image"`
+		}{
+			GroupID: groupId,
+			Content: content,
+			Image:   image,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// GetGroupNotice 获取群公告
+// groupId 群号
+func (a *cqApi) GetGroupNotice(groupId int64) ([]*GroupNotice, error) {
+	req := &apiReq{
+		Action: "_get_group_notice",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+		}{
+			GroupID: groupId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var notices []*GroupNotice
+	if err := json.Unmarshal(resp, &notices); err != nil {
+		return nil, newApiError("_get_group_notice", err.Error())
+	}
+	return notices, nil
+}
+
+// SetGroupKick 群踢人
+// groupId 群号
+// userId QQ 号
+// rejectAddRequest 拒绝此人的加群请求
+func (a *cqApi) SetGroupKick(groupId, userId int64, rejectAddRequest bool) error {
+	// todo 检查是否有权限，需要管理权或者群主权限
+	req := &apiReq{
+		Action: "set_group_kick",
+		Params: struct {
+			GroupID          int64 `json:"group_id"`
+			UserID           int64 `json:"user_id"`
+			RejectAddRequest bool  `json:"reject_add_request"`
+		}{
+			GroupID:          groupId,
+			UserID:           userId,
+			RejectAddRequest: rejectAddRequest,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// SetGroupLeave 退出群
+// groupId 群号
+// isDismiss 是否解散，如果登录号是群主，则仅在此项为 true 时能够解散
+func (a *cqApi) SetGroupLeave(groupId int64, isDismiss bool) error {
+	// todo 检查是否有权限，需要群主权限才能设置 isDismiss 为 true
+	req := &apiReq{
+		Action: "set_group_leave",
+		Params: struct {
+			GroupID   int64 `json:"group_id"`
+			IsDismiss bool  `json:"is_dismiss"`
+		}{
+			GroupID:   groupId,
+			IsDismiss: isDismiss,
+		},
+	}
+	_, err := req.Send(false)
+	return err
 }

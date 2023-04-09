@@ -5,7 +5,10 @@ type Context struct {
 }
 
 func (c *Context) init() {
-	c.decodeMessage()
+	if c.recv == nil {
+		return
+	}
+	c.decodeMessage(c.recv.Message)
 }
 
 func newContext(Recv *RecvNormalMsg) *Context {

@@ -10,6 +10,7 @@ type Global struct {
 	onlineClients            []*OnlineClient
 	friendList               FriendList
 	unidirectionalFriendList UnidirectionalFriendList
+	groupList                []*GroupInfo
 }
 
 // GetBotQQ 获取当前机器人的QQ号
@@ -40,6 +41,14 @@ func (g *Global) GetFriendList() FriendList {
 	return g.friendList
 }
 
+func (g *Global) GetUnidirectionalFriendList() UnidirectionalFriendList {
+	return g.unidirectionalFriendList
+}
+
+func (g *Global) GetGroupList() []*GroupInfo {
+	return g.groupList
+}
+
 type FriendList []*FriendInfo
 
 // Search 通过用户ID查找好友信息
@@ -61,6 +70,19 @@ func (f UnidirectionalFriendList) Search(userId int64) *UnidirectionalFriendInfo
 	for _, friend := range f {
 		if friend.UserId == userId {
 			return friend
+		}
+	}
+	return nil
+}
+
+type GroupList []*GroupInfo
+
+// Search 通过群号查找群信息
+func (g GroupList) Search(groupId int64) *GroupInfo {
+	// 从 GroupList 中查找 给定的 groupId
+	for _, group := range g {
+		if group.GroupId == groupId {
+			return group
 		}
 	}
 	return nil

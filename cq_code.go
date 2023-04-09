@@ -83,6 +83,8 @@ func cqIsPrefix(s string, pre string, pres ...string) bool {
 	return ret
 }
 
+// todo 用于确认文件路径或者url是否存在
+// 注意需要确认与cqhttp之间的连接，host是否是127.0.0.1，否则应该拒绝file://协议，因为cqhttp一定无法访问该文件
 func cqCheckFileExist(file string) bool {
 	return true
 }
@@ -695,7 +697,7 @@ func NewCQImage(file, type_ string, subType int, cache bool, id int64, c int) (*
 	if subType > 0 && subType <= 13 {
 		val["subType"] = subType
 	}
-	if id >= CQImageIDNormal && id <= CQImageIDSeek {
+	if id > CQImageIDNormal && id <= CQImageIDSeek {
 		val["id"] = id
 	}
 	val["cache"] = cache
@@ -770,8 +772,8 @@ type CQForward struct {
 }
 
 // GetId 获取转发的消息id
-func (f *CQForward) GetId() int64 {
-	return f.GetInt64("id")
+func (f *CQForward) GetId() string {
+	return f.GetString("id")
 }
 
 // NewCQForwardNode 新建一个转发消息
