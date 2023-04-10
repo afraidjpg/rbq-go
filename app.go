@@ -55,7 +55,7 @@ func (a *App) beforeStart() {
 }
 
 func (a *App) initBot() {
-	// 版本检查
+	// todo 版本检查
 
 	// 获取机器人的账号，好友等信息，以及一些状态信息
 	qq, nn, err := Api.GetLoginInfo() // 获取机器人信息

@@ -614,32 +614,12 @@ func (a *cqApi) OcrImage(file string) (*ImageOrcResult, error) {
 	return ocr, nil
 }
 
-// todo GetRecord 获取语音 该api暂未被支持
+// GetRecord 获取语音
 // file 缓存的语音文件名
 // out_format 输出格式，目前支持 mp3, amr, m4a, wma, spx, ogg, wav, flac
+// Deprecated: go-cqhttp暂未实现
 func (a *cqApi) GetRecord(file, outFormat string) (string, error) {
-	return "", newApiError("get_record", "该api暂未被支持")
-	//for _, v := range apiRecordFormatTypes {
-	//	if v == outFormat {
-	//		break
-	//	}
-	//	return "", newApiError("get_record", "out_format 不支持")
-	//}
-	//req := &apiReq{
-	//	Action: "get_record",
-	//	Params: struct {
-	//		File      string `json:"file"`
-	//		OutFormat string `json:"out_format"`
-	//	}{
-	//		File:      file,
-	//		OutFormat: outFormat,
-	//	},
-	//}
-	//resp, err := req.Send(true)
-	//if err != nil {
-	//	return "", err
-	//}
-	//return json.Get(resp, "file").ToString(), nil
+	return "", newApiError("get_record", "go-cqhttp暂未实现")
 }
 
 // CanSendRecord 当前机器人是否可以发送语音
@@ -1141,11 +1121,12 @@ func (a *cqApi) SendGroupSign(groupId int64) error {
 	return err
 }
 
-// SetGroupAnonymous todo 设置群匿名设置 暂未被支持
+// SetGroupAnonymous
 // groupId 群号
 // enable true 为开启，false 为关闭
+// Deprecated: go-cqhttp暂未实现
 func (a *cqApi) SetGroupAnonymous(groupId int64, enable bool) error {
-	return newApiError("set_group_anonymous", "暂未被支持")
+	return newApiError("set_group_anonymous", "go-cqhttp暂未实现")
 }
 
 // SendGroupNotice 发送群公告
@@ -1235,6 +1216,373 @@ func (a *cqApi) SetGroupLeave(groupId int64, isDismiss bool) error {
 		}{
 			GroupID:   groupId,
 			IsDismiss: isDismiss,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// UploadGroupFile 上传群文件
+// groupId 群号
+// file 文件路径，只支持 file:// 协议 和 http(s):// 协议
+// name 文件名
+// folder 父目录ID，留空或者 "/" 表示根目录
+func (a *cqApi) UploadGroupFile(groupId int64, file, name, folder string) error {
+	// todo 检查file
+
+	if folder == "/" {
+		folder = ""
+	}
+	req := &apiReq{
+		Action: "upload_group_file",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			File    string `json:"file"`
+			Name    string `json:"name"`
+			Folder  string `json:"folder"`
+		}{
+			GroupID: groupId,
+			File:    file,
+			Name:    name,
+			Folder:  folder,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// DeleteGroupFile 删除群文件
+// groupId 群号
+// fileID 文件 ID, rbq.File.FileId
+// busid 文件类型, rbq.File.Busid
+func (a *cqApi) DeleteGroupFile(groupId int64, fileID string, busid int64) error {
+	req := &apiReq{
+		Action: "delete_group_file",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			FileID  string `json:"file_id"`
+			Busid   int64  `json:"busid"`
+		}{
+			GroupID: groupId,
+			FileID:  fileID,
+			Busid:   busid,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// CreateGroupFileFolder 创建群文件夹
+// groupId 群号
+// name 文件夹名
+func (a *cqApi) CreateGroupFileFolder(groupId int64, name string) error {
+	req := &apiReq{
+		Action: "create_group_file_folder",
+		Params: struct {
+			GroupID  int64  `json:"group_id"`
+			Name     string `json:"name"`
+			ParentId string `json:"parent_id"`
+		}{
+			GroupID:  groupId,
+			Name:     name,
+			ParentId: "/",
+		},
+	}
+	_, err := req.Send(true)
+	return err
+}
+
+// DeleteGroupFileFolder 删除群文件夹
+// groupId 群号
+// folderId 文件夹 ID, rbq.Folder.FolderId
+func (a *cqApi) DeleteGroupFileFolder(groupId int64, folderId string) error {
+	req := &apiReq{
+		Action: "delete_group_file_folder",
+		Params: struct {
+			GroupID  int64  `json:"group_id"`
+			FolderId string `json:"folder_id"`
+		}{
+			GroupID:  groupId,
+			FolderId: folderId,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// GetGroupFileSystemInfo 获取群文件系统信息
+// groupId 群号
+func (a *cqApi) GetGroupFileSystemInfo(groupId int64) (*GroupFileSystemInfo, error) {
+	req := &apiReq{
+		Action: "get_group_file_system_info",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+		}{
+			GroupID: groupId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var info GroupFileSystemInfo
+	if err := json.Unmarshal(resp, &info); err != nil {
+		return nil, newApiError("get_group_file_system_info", err.Error())
+	}
+	return &info, nil
+}
+
+// GetGroupRootFiles 获取群根目录文件列表
+// groupId 群号
+func (a *cqApi) GetGroupRootFiles(groupId int64) (*GroupFile, error) {
+	req := &apiReq{
+		Action: "get_group_root_files",
+		Params: struct {
+			GroupID int64 `json:"group_id"`
+		}{
+			GroupID: groupId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var files *GroupFile
+	if err := json.Unmarshal(resp, &files); err != nil {
+		return nil, newApiError("get_group_root_files", err.Error())
+	}
+	return files, nil
+}
+
+// GetGroupFilesByFolder 获取群文件列表
+// groupId 群号
+// folderId 文件夹 ID, rbq.Folder.FolderId
+func (a *cqApi) GetGroupFilesByFolder(groupId int64, folderId string) (*GroupFile, error) {
+	req := &apiReq{
+		Action: "get_group_files_by_folder",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			Folder  string `json:"folder_id"`
+		}{
+			GroupID: groupId,
+			Folder:  folderId,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var files *GroupFile
+	if err := json.Unmarshal(resp, &files); err != nil {
+		return nil, newApiError("get_group_files_by_folder", err.Error())
+	}
+	return files, nil
+}
+
+// GetGroupFileUrl 获取群文件下载链接
+// groupId 群号
+// fileID 文件 ID, rbq.File.FileId
+// busid 文件类型, rbq.File.Busid
+func (a *cqApi) GetGroupFileUrl(groupId int64, fileID string, busid int64) (string, error) {
+	req := &apiReq{
+		Action: "get_group_file_url",
+		Params: struct {
+			GroupID int64  `json:"group_id"`
+			FileID  string `json:"file_id"`
+			Busid   int64  `json:"busid"`
+		}{
+			GroupID: groupId,
+			FileID:  fileID,
+			Busid:   busid,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return "", err
+	}
+	url := json.Get(resp, "url").ToString()
+	return url, nil
+}
+
+// UploadPrivateFile 上传私聊文件
+// userId 用户 QQ 号
+// file 文件路径，只支持 file:// 协议 和 http(s):// 协议
+// name 文件名
+func (a *cqApi) UploadPrivateFile(userId int64, file, name string) error {
+	req := &apiReq{
+		Action: "upload_private_file",
+		Params: struct {
+			UserID int64  `json:"user_id"`
+			File   string `json:"file"`
+			Name   string `json:"name"`
+		}{
+			UserID: userId,
+			File:   file,
+			Name:   name,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// GetCookies 获取 cookies
+// domain 指定域名
+// Deprecated: go-cqhttp暂未实现
+func (a *cqApi) GetCookies(domain string) (string, error) {
+	return "", newApiError("get_cookies", "go-cqhttp暂未实现")
+}
+
+// GetCsrfToken 获取 CSRF Token
+// Deprecated: go-cqhttp暂未实现
+func (a *cqApi) GetCsrfToken() (int64, error) {
+	return 0, newApiError("get_csrf_token", "go-cqhttp暂未实现")
+}
+
+// GetCredentials 获取 QQ 相关接口凭证
+// domain 指定域名
+// Deprecated: go-cqhttp暂未实现
+func (a *cqApi) GetCredentials(domain string) (string, error) {
+	return "", newApiError("get_credentials", "go-cqhttp暂未实现")
+}
+
+// GetVersionInfo go-cqhttp获取版本信息
+func (a *cqApi) GetVersionInfo() (*CQVersionInfo, error) {
+	req := &apiReq{
+		Action: "get_version_info",
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var info CQVersionInfo
+	if err := json.Unmarshal(resp, &info); err != nil {
+		return nil, newApiError("get_version_info", err.Error())
+	}
+	return &info, nil
+}
+
+// GetStatus 获取运行状态
+func (a *cqApi) GetStatus() (*CQStatus, error) {
+	req := &apiReq{
+		Action: "get_status",
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	var status CQStatus
+	if err := json.Unmarshal(resp, &status); err != nil {
+		return nil, newApiError("get_status", err.Error())
+	}
+	return &status, nil
+}
+
+// RestartCQHTTP 设置重启 go-cqhttp
+func (a *cqApi) RestartCQHTTP() error {
+	return newApiError("set_restart", "已废弃")
+}
+
+// CleanCache 清理数据目录
+// Deprecated: go-cqhttp暂未实现
+func (a *cqApi) CleanCache() error {
+	return newApiError("clean_cache", "go-cqhttp暂未实现")
+}
+
+// ReloadEventFilter 重载事件过滤器
+// file 事件过滤器文件
+func (a *cqApi) ReloadEventFilter(file string) error {
+	// todo 检查file
+	req := &apiReq{
+		Action: "reload_event_filter",
+		Params: struct {
+			File string `json:"file"`
+		}{
+			File: file,
+		},
+	}
+	_, err := req.Send(false)
+	return err
+}
+
+// DownloadFile 下载文件
+// url 文件链接
+// thread_count 线程数
+// headers 自定义请求头，格式 KEY=VALUE，如：Referer=https://www.baidu.com
+func (a *cqApi) DownloadFile(url string, threadCount int, headers ...string) ([]byte, error) {
+	req := &apiReq{
+		Action: "download_file",
+		Params: struct {
+			URL         string   `json:"url"`
+			ThreadCount int      `json:"thread_count"`
+			Headers     []string `json:"headers"`
+		}{
+			URL:         url,
+			ThreadCount: threadCount,
+			Headers:     headers,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// CheckUrlSafely 检查 URL 安全性
+func (a *cqApi) CheckUrlSafely(url string) (int64, error) {
+	req := &apiReq{
+		Action: "check_url_safely",
+		Params: struct {
+			URL string `json:"url"`
+		}{
+			URL: url,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return 0, err
+	}
+	return json.Get(resp, "level").ToInt64(), nil
+}
+
+// getWordSlices 获取中文分词
+// content 文本内容
+// 该接口不对外开放，仅供内部使用
+func (a *cqApi) getWordSlices(content string) ([]string, error) {
+	req := &apiReq{
+		Action: ".get_word_slices",
+		Params: struct {
+			Content string `content:"text"`
+		}{
+			Content: content,
+		},
+	}
+	resp, err := req.Send(true)
+	if err != nil {
+		return nil, err
+	}
+
+	s := json.Get(resp, "slices").ToString()
+	var slices []string
+	if err := json.UnmarshalFromString(s, &slices); err != nil {
+		return nil, newApiError("get_word_slices", err.Error())
+	}
+	return slices, nil
+}
+
+// .handleQuickOperation 处理快速操作
+// context 事件数据对象, 可做精简, 如去掉 message 等无用字段
+// operation 快速操作对象, 例如 {"ban": true, "reply": "请不要说脏话"}
+// 该接口不对外开放，仅供内部使用
+func (a *cqApi) handleQuickOperation(context, operation any) error {
+	req := &apiReq{
+		Action: ".handle_quick_operation",
+		Params: struct {
+			Context   any `json:"context"`
+			Operation any `json:"operation"`
+		}{
+			Context:   context,
+			Operation: operation,
 		},
 	}
 	_, err := req.Send(false)

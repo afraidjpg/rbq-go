@@ -1,5 +1,7 @@
 package rbq
 
+import "math"
+
 // DeviceModel 设备信息，API.GetDeviceList 的响应参数
 type DeviceModel struct {
 	ModelShow string `json:"model_show"`
@@ -21,7 +23,7 @@ type StrangerInfo struct {
 	Age       int64  `json:"age"`        // 年龄
 	Qid       string `json:"qid"`        // qid ID身份卡
 	Level     int64  `json:"level"`      // 等级
-	LoginDays int32  `json:"login_days"` // 登录天数
+	LoginDays int64  `json:"login_days"` // 登录天数
 }
 
 // FriendInfo 好友信息，API.GetFriendList
@@ -197,8 +199,100 @@ type GroupNoticeMessage struct {
 	Image []*GroupNoticeMessageImage `json:"images"` // 公告图片
 }
 
+// GroupNoticeMessageImage 群公告消息中的图片
 type GroupNoticeMessageImage struct {
 	Height string `json:"height"` // 图片高度
 	Width  string `json:"width"`  // 图片宽度
 	Id     string `json:"id"`     // 图片ID，todo 应该如何获得图片？
+}
+
+// File 群文件信息
+type File struct {
+	GroupId       int64  `json:"group_id"`       // 群号
+	FileId        string `json:"file_id"`        // 文件ID
+	FileName      string `json:"file_name"`      // 文件名
+	Busid         int64  `json:"busid"`          // 文件类型
+	FileSize      int64  `json:"file_size"`      // 文件大小
+	UploadTime    int64  `json:"upload_time"`    // 上传时间
+	DeadTime      int64  `json:"dead_time"`      // 过期时间,永久文件恒为0
+	ModifyTime    int64  `json:"modify_time"`    // 最后修改时间
+	DownloadTimes int64  `json:"download_times"` // 下载次数
+	Uploader      int64  `json:"uploader"`       // 上传者ID
+	UploaderName  string `json:"uploader_name"`  // 上传者名字
+}
+
+// Folder 群文件夹信息
+type Folder struct {
+	GroupId        int64  `json:"group_id"`         // 群号
+	FolderId       string `json:"folder_id"`        // 文件夹ID
+	FolderName     string `json:"folder_name"`      // 文件名
+	CreateTime     int64  `json:"create_time"`      // 创建时间
+	Creator        int64  `json:"creator"`          // 创建者QQ
+	CreatorName    string `json:"creator_name"`     // 创建者名字
+	TotalFileCount int64  `json:"total_file_count"` // 子文件数量
+}
+
+// GroupFileSystemInfo 群文件系统信息，API.GetGroupFileSystemInfo 的响应参数
+type GroupFileSystemInfo struct {
+	FileCount  int64 `json:"file_count"`  // 文件总数
+	LimitCount int64 `json:"limit_count"` // 文件上限
+	UsedSpace  int64 `json:"used_space"`  // 已使用空间
+	TotalSpace int64 `json:"total_space"` // 空间上限
+}
+
+func (gfs *GroupFileSystemInfo) GetUsedSpaceMB() float64 {
+	mb := float64(gfs.UsedSpace) / 1024 / 1024
+	return math.Trunc(mb*100) / 100
+}
+
+func (gfs *GroupFileSystemInfo) GetTotalSpaceMB() float64 {
+	mb := float64(gfs.UsedSpace) / 1024 / 1024
+	return math.Trunc(mb*100) / 100
+}
+
+// GroupFile 群文件信息，API.GetGroupRootFiles 的响应参数
+type GroupFile struct {
+	Files   []*File   `json:"files"`   // 文件列表
+	Folders []*Folder `json:"folders"` // 文件夹列表
+}
+
+// CQVersionInfo go-cqhttp 版本信息，API.GetVersionInfo 的响应参数
+type CQVersionInfo struct {
+	AppName                  string `json:"app_name"`                   // 应用标识, 如 go-cqhttp 固定值
+	AppVersion               string `json:"app_version"`                // 应用版本, 如 v0.9.40-fix4
+	AppFullName              string `json:"app_full_name"`              // 应用完整名称
+	ProtocolVersion          string `json:"protocol_version"`           // OneBot 标准版本 固定值
+	CoolqEdition             string `json:"coolq_edition"`              // 原Coolq版本 固定值 pro
+	CoolqDirectory           string `json:"coolq_directory"`            // 原Coolq目录 固定值
+	GoCqhttp                 bool   `json:"go-cqhttp"`                  // 是否为go-cqhttp 固定值
+	PluginVersion            string `json:"plugin_version"`             // 固定值 4.15.0
+	PluginBuildNumber        int    `json:"plugin_build_number"`        // 固定值 99
+	PluginBuildConfiguration string `json:"plugin_build_configuration"` // 固定值 release
+	RuntimeVersion           string `json:"runtime_version"`            // 运行时版本, 如 go1.13.8
+	RuntimeOs                string `json:"runtime_os"`                 // 运行时操作系统, 如 windows
+	Version                  string `json:"version"`                    // 应用版本, 如 v0.9.40-fix4
+	Protocol                 int    `json:"protocol"`                   // 当前登陆使用协议类型
+}
+
+// CQStatus go-cqhttp 运行状态，API.GetStatus 的响应参数
+type CQStatus struct {
+	AppInitialized bool          `json:"app_initialized"` // 原 CQHTTP 字段, 恒定为 true
+	AppEnabled     bool          `json:"app_enabled"`     // 原 CQHTTP 字段, 恒定为 true
+	PluginsGood    bool          `json:"plugins_good"`    // 原 CQHTTP 字段, 恒定为 true
+	AppGood        bool          `json:"app_good"`        // 原 CQHTTP 字段, 恒定为 true
+	Online         bool          `json:"online"`          // 表示BOT是否在线
+	Good           bool          `json:"good"`            // 同 online
+	Stat           *CQStatistics `json:"stat"`            // 运行统计
+}
+
+// CQStatistics 运行统计
+type CQStatistics struct {
+	PacketReceived  uint64 `json:"packet_received"`   // 收到的数据包总数
+	PacketSent      uint64 `json:"packet_sent"`       // 发送的数据包总数
+	PacketLost      uint64 `json:"packet_lost"`       // 数据包丢失总数
+	MessageReceived uint64 `json:"message_received"`  // 接受信息总数
+	MessageSent     uint64 `json:"message_sent"`      // 发送信息总数
+	DisconnectTimes uint64 `json:"disconnect_times"`  // TCP 链接断开次数
+	LostTimes       uint64 `json:"lost_times"`        // 账号掉线次数
+	LastMessageTime int64  `json:"last_message_time"` // 最后一条消息时间
 }

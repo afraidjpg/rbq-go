@@ -2,7 +2,7 @@
 
 <h1>rbq-go</h1>
 <h3>一个以go-cqhttp为后端的插件开发框架</h3>
-<img src="asset/logo.png" alt="logo"/>
+<img src="asset/logo.png" alt="logo" width="400"/>
 
 ![](https://img.shields.io/badge/go-v1.18%2B-blue)
 [![](https://img.shields.io/badge/go--cqhttp-v1.0.0-orange)](https://github.com/Mrs4s/go-cqhttp)
@@ -197,80 +197,79 @@ CQ码的支持与 go-cqhttp 同步，可以[点击这里](https://github.com/Mrs
 
 实现了对 go-cqhttp 的 api 调用，可以通过 `rbq.Api` 获取 `APIWrapper` 对象，然后调用对应的方法即可
 
-|      分类      |          名称          |             方法名             |         go-cqhttp 接口名          |    进度     |                                                            备注                                                            |
-|:------------:|:--------------------:|:---------------------------:|:------------------------------:|:---------:|:------------------------------------------------------------------------------------------------------------------------:|
-|    bot账号     |       获取登录号信息        |        GetLoginInfo         |         get_login_info         |    完成     |                                               获取该信息请查看[全局变量](#global_var)                                                |
-|    bot账号     |       设置登录号资料        |        SetQQProfile         |         set_qq_profile         |    完成     |                                                                                                                          |
-|    bot账号     |       获取企点账号信息       |    GetQidianAccountInfo     |    qidian_get_account_info     |    完成     |                                                        文档没有找到响应结构                                                        |
-|    bot账号     |        获取在线机型        |        GetDeviceList        |        _get_model_show         |    完成     |                                                                                                                          |
-|    bot账号     |        设置在线机型        |       SetOnlineDevice       |        _set_model_show         |    完成     | Android Watch等协议登录时好像修改不了。虽然返回成功也有设置不了的情况, 见[该issue](https://github.com/Mrs4s/go-cqhttp/pull/872#issuecomment-831180149) |
-|    bot账号     |        获取在线设备        |      GetOnlineClients       |       get_online_clients       |    完成     |                                               获取该信息请查看[全局变量](#global_var)                                                |
-|     好友信息     |       获取陌生人信息        |       GetStrangerInfo       |       get_stranger_info        |    完成     |                                                          也适用于好友                                                          |
-|     好友信息     |        获取好友列表        |        GetFriendList        |        get_friend_list         |    完成     |                                               获取该信息请查看[全局变量](#global_var)                                                |
-|     好友信息     |       获取单向好友列表       | GetUnidirectionalFriendList | get_unidirectional_friend_list |    完成     |                                                                                                                          |
-|     好友操作     |         删除好友         |        DeleteFriend         |         delete_friend          |    完成     |                                                                                                                          |
-|     好友操作     |         删除单向         | DeleteUnidirectionalFriend  |  delete_unidirectional_friend  |    完成     |                                                                                                                          |
-|      消息      |        发送私聊消息        |       SendPrivateMsg        |        send_private_msg        |    完成     |                                                                                                                          |
-|      消息      |        发送群消息         |        SendGroupMsg         |         send_group_msg         |    完成     |                                                                                                                          |
-|      消息      |         发送消息         |           SendMsg           |            send_msg            |    完成     |                                                                                                                          |
-|      消息      |         获取消息         |           GetMsg            |            get_msg             |    完成     |                                                                                                                          |
-|      消息      |         撤回消息         |          DeleteMsg          |           delete_msg           |    完成     |                                                                                                                          |
-|      消息      |        标记消息已读        |        MarkMsgAsRead        |        mark_msg_as_read        |    完成     |                                                                                                                          |
-|      消息      |       获取合并转发内容       |        GetforwardMsg        |        get_forward_msg         |    完成     |                                                                                                                          |
-|      消息      |    发送合并转发 ( 群聊 )     |     SendGroupForwardMsg     |     send_group_forward_msg     |    完成     |                                                                                                                          |
-|      消息      |    发送合并转发 ( 好友 )     |    SendPrivateForwardMsg    |    send_private_forward_msg    |    完成     |                                                                                                                          |
-|      消息      |      获取群消息历史记录       |     GetGroupMsgHistory      |     get_group_msg_history      |    完成     |                                                                                                                          |
-|      图片      |        获取图片信息        |          GetImage           |           get_image            |    完成     |                                                                                                                          |
-|      图片      |      检查是否可以发送图片      |        CanSendImage         |         can_send_image         |    完成     |                                                 该接口在启动阶段由框架执行,并且在合适的位置判断                                                 |
-|      图片      |        图片 OCR        |          OcrImage           |           ocr_image            |    完成     |                                                                                                                          |
-|      语音      |         获取语音         |          GetRecord          |           get_record           | cqhttp未实现 |                                                                                                                          |
-|      语音      |      检查是否可以发送语音      |        CanSendRecord        |        can_send_record         |    完成     |                                                 该接口在启动阶段由框架执行,并且在合适的位置判断                                                 |
-|      处理      |       处理加好友请求        |     SetFriendAddRequest     |     set_friend_add_request     |    完成     |                                                                                                                          |
-|      处理      |      处理加群请求／邀请       |     SetGroupAddRequest      |     set_group_add_request      |    完成     |                                                                                                                          |
-|     群信息      |        获取群信息         |        GetGroupInfo         |         get_group_info         |    完成     |                                                                                                                          |
-|     群信息      |        获取群列表         |        GetGroupList         |         get_group_list         |    完成     |                                                                                                                          | 
-|     群信息      |       获取群成员信息        |     GetGroupMemberInfo      |     get_group_member_info      |    完成     |                                                                                                                          |
-|     群信息      |       获取群成员列表        |     GetGroupMemberList      |     get_group_member_list      |    完成     |                                                                                                                          |
-|     群信息      |       获取群荣誉信息        |      GetGroupHonorInfo      |      get_group_honor_info      |    完成     |                                                                                                                          |
-|     群信息      |       获取群系统消息        |      GetGroupSystemMsg      |      get_group_system_msg      |    完成     |                                                                                                                          |
-|     群信息      |       获取精华消息列表       |      GetEssenceMsgList      |      get_essence_msg_list      |    完成     |                                                                                                                          |
-|     群信息      |    获取群 @全体成员 剩余次数    |     GetGroupAtAllRemain     |    get_group_at_all_remain     |    完成     |                                                                                                                          |
-|     群设置      |         设置群名         |        SetGroupName         |         set_group_name         |    完成     |                                                                                                                          |
-|     群设置      |        设置群头像         |      SetGroupPortrait       |       set_group_portrait       |    完成     |                                                                                                                          |
-|     群设置      |        设置群管理员        |        SetGroupAdmin        |        set_group_admin         |    完成     |                                                       需要机器人为群主时有效                                                        |
-|     群设置      |    设置群名片 ( 群备注 )     |        SetGroupCard         |         set_group_card         |    完成     |                                                                                                                          |
-|     群设置      |       设置群专属头衔        |    SetGroupSpecialTitle     |    set_group_special_title     |    完成     |                                                                                                                          |
-|     群操作      |        群单人禁言         |         SetGroupBan         |         set_group_ban          |    完成     |                                                                                                                          |
-|     群操作      |        群全员禁言         |      SetGroupWholeBan       |      set_group_whole_ban       |    完成     |                                                       需要机器人为群主时有效                                                        |
-|     群操作      |       群匿名用户禁言        |    SetGroupAnonymousBan     |    set_group_anonymous_ban     | cqhttp未实现 |                                                                                                                          |
-|     群操作      |        设置精华消息        |        SetEssenceMsg        |        set_essence_msg         |    完成     |                                                                                                                          |
-|     群操作      |        删除精华消息        |      DeleteEssenceMsg       |       delete_essence_msg       |    完成     |                                                                                                                          |
-|     群操作      |         群打卡          |        SendGroupSign        |        send_group_sign         |    完成     |                                                                                                                          |
-|     群操作      |        群设置匿名         |      SetGroupAnonymous      |      set_group_anonymous       |    完成     |                                                                                                                          |
-|     群操作      |        发送群公告         |       SendGroupNotice       |       _send_group_notice       |    完成     |                                                                                                                          |
-|     群操作      |        获取群公告         |       GetGroupNotice        |       _get_group_notice        |    完成     |                                                                                                                          |
-|     群操作      |         群组踢人         |        SetGroupKick         |         set_group_kick         |    完成     |                                                                                                                          |
-|     群操作      |         退出群组         |        SetGroupLeave        |        set_group_leave         |    完成     |                                                                                                                          |
-|      文件      |        上传群文件         |                             |       upload_group_file        |    未实现    |                                                                                                                          |
-|      文件      |        删除群文件         |                             |       delete_group_file        |    未实现    |                                                                                                                          |
-|      文件      |       创建群文件文件夹       |                             |    create_group_file_folder    |    未实现    |                                                                                                                          |
-|      文件      |       删除群文件文件夹       |                             |      delete_group_folder       |    未实现    |                                                                                                                          |
-|      文件      |      获取群文件系统信息       |                             |   get_group_file_system_info   |    未实现    |                                                                                                                          |
-|      文件      |      获取群根目录文件列表      |                             |      get_group_root_files      |    未实现    |                                                                                                                          |
-|      文件      |      获取群子目录文件列表      |                             |   get_group_files_by_folder    |    未实现    |                                                                                                                          |
-|      文件      |      获取群文件资源链接       |                             |       get_group_file_url       |    未实现    |                                                                                                                          |
-|      文件      |        上传私聊文件        |                             |      upload_private_file       |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |      获取 Cookies      |                             |          get_cookies           |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |    获取 CSRF Token     |                             |         get_csrf_token         |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |     获取 QQ 相关接口凭证     |                             |        get_credentials         |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |        获取版本信息        |                             |        get_version_info        |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |         获取状态         |                             |           get_status           |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |         清理缓存         |                             |          clean_cache           |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |       重载事件过滤器        |                             |      reload_event_filter       |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |      下载文件到缓存目录       |                             |         download_file          |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |       检查链接安全性        |                             |        check_url_safely        |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |         获取图片         |                             |           get_image            |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 |  获取中文分词 ( 隐藏 API )   |                             |        .get_word_slices        |    未实现    |                                                                                                                          |
-| Go-CqHttp 相关 | 对事件执行快速操作 ( 隐藏 API ) |                             |    .handle_quick_operation     |    未实现    |                                                                                                                          |
+|      分类      |          名称          |             方法名             |         go-cqhttp 接口名          |    进度     |
+|:------------:|:--------------------:|:---------------------------:|:------------------------------:|:---------:|
+|    bot账号     |       获取登录号信息        |        GetLoginInfo         |         get_login_info         |    完成     |
+|    bot账号     |       设置登录号资料        |        SetQQProfile         |         set_qq_profile         |    完成     |
+|    bot账号     |       获取企点账号信息       |    GetQidianAccountInfo     |    qidian_get_account_info     |    完成     |
+|    bot账号     |        获取在线机型        |        GetDeviceList        |        _get_model_show         |    完成     |
+|    bot账号     |        设置在线机型        |       SetOnlineDevice       |        _set_model_show         |    完成     |
+|    bot账号     |        获取在线设备        |      GetOnlineClients       |       get_online_clients       |    完成     |
+|     好友信息     |       获取陌生人信息        |       GetStrangerInfo       |       get_stranger_info        |    完成     |
+|     好友信息     |        获取好友列表        |        GetFriendList        |        get_friend_list         |    完成     |
+|     好友信息     |       获取单向好友列表       | GetUnidirectionalFriendList | get_unidirectional_friend_list |    完成     |
+|     好友操作     |         删除好友         |        DeleteFriend         |         delete_friend          |    完成     |
+|     好友操作     |         删除单向         | DeleteUnidirectionalFriend  |  delete_unidirectional_friend  |    完成     |
+|      消息      |        发送私聊消息        |       SendPrivateMsg        |        send_private_msg        |    完成     |
+|      消息      |        发送群消息         |        SendGroupMsg         |         send_group_msg         |    完成     |
+|      消息      |         发送消息         |           SendMsg           |            send_msg            |    完成     |
+|      消息      |         获取消息         |           GetMsg            |            get_msg             |    完成     |
+|      消息      |         撤回消息         |          DeleteMsg          |           delete_msg           |    完成     |
+|      消息      |        标记消息已读        |        MarkMsgAsRead        |        mark_msg_as_read        |    完成     |
+|      消息      |       获取合并转发内容       |        GetforwardMsg        |        get_forward_msg         |    完成     |
+|      消息      |    发送合并转发 ( 群聊 )     |     SendGroupForwardMsg     |     send_group_forward_msg     |    完成     |
+|      消息      |    发送合并转发 ( 好友 )     |    SendPrivateForwardMsg    |    send_private_forward_msg    |    完成     |
+|      消息      |      获取群消息历史记录       |     GetGroupMsgHistory      |     get_group_msg_history      |    完成     |
+|      图片      |        获取图片信息        |          GetImage           |           get_image            |    完成     |
+|      图片      |      检查是否可以发送图片      |        CanSendImage         |         can_send_image         |    完成     |
+|      图片      |        图片 OCR        |          OcrImage           |           ocr_image            |    完成     |
+|      语音      |         获取语音         |          GetRecord          |           get_record           | cqhttp未实现 |
+|      语音      |      检查是否可以发送语音      |        CanSendRecord        |        can_send_record         |    完成     |
+|      处理      |       处理加好友请求        |     SetFriendAddRequest     |     set_friend_add_request     |    完成     |
+|      处理      |      处理加群请求／邀请       |     SetGroupAddRequest      |     set_group_add_request      |    完成     |
+|     群信息      |        获取群信息         |        GetGroupInfo         |         get_group_info         |    完成     |
+|     群信息      |        获取群列表         |        GetGroupList         |         get_group_list         |    完成     | 
+|     群信息      |       获取群成员信息        |     GetGroupMemberInfo      |     get_group_member_info      |    完成     |
+|     群信息      |       获取群成员列表        |     GetGroupMemberList      |     get_group_member_list      |    完成     |
+|     群信息      |       获取群荣誉信息        |      GetGroupHonorInfo      |      get_group_honor_info      |    完成     |
+|     群信息      |       获取群系统消息        |      GetGroupSystemMsg      |      get_group_system_msg      |    完成     |
+|     群信息      |       获取精华消息列表       |      GetEssenceMsgList      |      get_essence_msg_list      |    完成     |
+|     群信息      |    获取群 @全体成员 剩余次数    |     GetGroupAtAllRemain     |    get_group_at_all_remain     |    完成     |
+|     群设置      |         设置群名         |        SetGroupName         |         set_group_name         |    完成     |
+|     群设置      |        设置群头像         |      SetGroupPortrait       |       set_group_portrait       |    完成     |
+|     群设置      |        设置群管理员        |        SetGroupAdmin        |        set_group_admin         |    完成     |
+|     群设置      |    设置群名片 ( 群备注 )     |        SetGroupCard         |         set_group_card         |    完成     |
+|     群设置      |       设置群专属头衔        |    SetGroupSpecialTitle     |    set_group_special_title     |    完成     |
+|     群操作      |        群单人禁言         |         SetGroupBan         |         set_group_ban          |    完成     |
+|     群操作      |        群全员禁言         |      SetGroupWholeBan       |      set_group_whole_ban       |    完成     |
+|     群操作      |       群匿名用户禁言        |    SetGroupAnonymousBan     |    set_group_anonymous_ban     | cqhttp未实现 |
+|     群操作      |        设置精华消息        |        SetEssenceMsg        |        set_essence_msg         |    完成     |
+|     群操作      |        删除精华消息        |      DeleteEssenceMsg       |       delete_essence_msg       |    完成     |
+|     群操作      |         群打卡          |        SendGroupSign        |        send_group_sign         |    完成     |
+|     群操作      |        群设置匿名         |      SetGroupAnonymous      |      set_group_anonymous       |    完成     |
+|     群操作      |        发送群公告         |       SendGroupNotice       |       _send_group_notice       |    完成     |
+|     群操作      |        获取群公告         |       GetGroupNotice        |       _get_group_notice        |    完成     |
+|     群操作      |         群组踢人         |        SetGroupKick         |         set_group_kick         |    完成     |
+|     群操作      |         退出群组         |        SetGroupLeave        |        set_group_leave         |    完成     |
+|      文件      |        上传群文件         |       UploadGroupFile       |       upload_group_file        |    完成     |
+|      文件      |        删除群文件         |       DeleteGroupFile       |       delete_group_file        |    完成     |
+|      文件      |       创建群文件文件夹       |    CreateGroupFileFolder    |    create_group_file_folder    |    完成     |
+|      文件      |       删除群文件文件夹       |    DeleteGroupFileFolder    |      delete_group_folder       |    完成     |
+|      文件      |      获取群文件系统信息       |   GetGroupFileSystemInfo    |   get_group_file_system_info   |    完成     |
+|      文件      |      获取群根目录文件列表      |      GetGroupRootFiles      |      get_group_root_files      |    完成     |
+|      文件      |      获取群子目录文件列表      |    GetGroupFilesByFolder    |   get_group_files_by_folder    |    完成     |
+|      文件      |      获取群文件资源链接       |       GetGroupFileUrl       |       get_group_file_url       |    完成     |
+|      文件      |        上传私聊文件        |      UploadPrivateFile      |      upload_private_file       |    完成     |
+| Go-CqHttp 相关 |      获取 Cookies      |         GetCookies          |          get_cookies           | cqhttp未实现 |
+| Go-CqHttp 相关 |    获取 CSRF Token     |        GetCsrfToken         |         get_csrf_token         | cqhttp未实现 |
+| Go-CqHttp 相关 |     获取 QQ 相关接口凭证     |       GetCredentials        |        get_credentials         | cqhttp未实现 |
+| Go-CqHttp 相关 |        获取版本信息        |       GetVersionInfo        |        get_version_info        |    完成     |
+| Go-CqHttp 相关 |         获取状态         |          GetStatus          |           get_status           |    完成     |
+| Go-CqHttp 相关 |         清理缓存         |         CleanCache          |          clean_cache           |    完成     |
+| Go-CqHttp 相关 |       重载事件过滤器        |      ReloadEventFilter      |      reload_event_filter       |    完成     |
+| Go-CqHttp 相关 |      下载文件到缓存目录       |        DownloadFile         |         download_file          |    完成     |
+| Go-CqHttp 相关 |       检查链接安全性        |       CheckUrlSafely        |        check_url_safely        |    完成     |
+| Go-CqHttp 相关 |  获取中文分词 ( 隐藏 API )   |        getWordSlices        |        .get_word_slices        |    完成     |
+| Go-CqHttp 相关 | 对事件执行快速操作 ( 隐藏 API ) |    handleQuickOperation     |    .handle_quick_operation     |    完成     |
 
 <h2 id="global_var"> 全局变量 </h2>
