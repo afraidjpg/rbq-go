@@ -444,7 +444,7 @@ func (at *CQFace) GetId() int64 {
 // magic 为是否为变声
 // cache, proxy, timeout 只有在 file 为网络路径时有效
 func NewCQRecord(file string, magic, cache, proxy bool, timeout int) (*CQCode, *CQCodeError) {
-	if !GlobalVar.canSendRecord {
+	if !globalVar.canSendRecord {
 		return nil, newCQError("record", "当前机器人不支持发送语音")
 	}
 	if !cqIsPrefix("http://", "https://", "base64://", "file://") {
@@ -680,7 +680,7 @@ func NewCQMusic(type_ string, id int64, url, audio, title, content, image string
 // id 特效ID
 // c 下载线程数
 func NewCQImage(file, type_ string, subType int, cache bool, id int64, c int) (*CQCode, *CQCodeError) {
-	if !GlobalVar.canSendImg {
+	if !globalVar.canSendImg {
 		return nil, newCQError("image", "当前机器人不支持发送图片")
 	}
 	val := map[string]any{}
@@ -820,7 +820,7 @@ func NewCQForwardNode(id int64, name string, uin int64, content, seq any) (*CQCo
 // source 可选，表示分享来源名称
 // icon 可选，表示分享来源图标url，支持 http://, https://
 func NewCQCardImage(file string, minWidth, minHeight, maxWidth, maxHeight int64, source, icon string) (*CQCode, *CQCodeError) {
-	if !GlobalVar.canSendImg {
+	if !globalVar.canSendImg {
 		return nil, newCQError("image", "当前机器人不支持发送图片")
 	}
 

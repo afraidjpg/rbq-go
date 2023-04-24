@@ -1,6 +1,11 @@
 package rbq
 
-var GlobalVar = &Global{}
+var globalVar = &Global{}
+
+// GetGlobalInfo 获取全局可用信息
+func GetGlobalInfo() *Global {
+	return globalVar
+}
 
 type Global struct {
 	botQQ                    int64

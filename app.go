@@ -41,7 +41,8 @@ func (a *App) Run(cqAddr string) {
 
 func (a *App) start() {
 	a.beforeStart() // 启动前的一些操作
-	pl.startup()    // 启动插件
+	go pl.startup() // 启动插件
+	a.started()     // 启动后的一些操作
 }
 
 func (a *App) beforeStart() {
@@ -52,6 +53,10 @@ func (a *App) beforeStart() {
 		ctx := newContext(nil)
 		h(ctx)
 	}
+}
+
+func (a *App) started() {
+	a.status = appStatusRunning
 }
 
 func (a *App) initBot() {

@@ -12,6 +12,16 @@ func init() {
 	cqapi = newBotApi(&cqApi{})
 }
 
+func GetBotApi() *ApiWrapper {
+	if rbqApp == nil {
+		panic("请先使用 rbq.NewApp() 初始化应用")
+	}
+	if rbqApp.status != appStatusRunning {
+		panic("应用尚未就绪，无法使用 API")
+	}
+	return cqapi
+}
+
 // ApiWrapper 进行一层包装，使得 cqApi 的方法可以直接调用，同时确保全局只能有一个 ApiWrapper 实例
 type ApiWrapper struct {
 	*cqApi
@@ -91,7 +101,7 @@ func (a *apiReq) getError(resp []byte) string {
 type cqApi struct {
 }
 
-// GetLoginInfo 获取当前登录的机器人的信息, 在机器人启动阶段会读取并自动载入 GlobalVar
+// GetLoginInfo 获取当前登录的机器人的信息, 在机器人启动阶段会读取并自动载入 globalVar
 func (a *cqApi) GetLoginInfo() (int64, string, error) {
 	req := &apiReq{
 		Action: "get_login_info",
@@ -103,8 +113,8 @@ func (a *cqApi) GetLoginInfo() (int64, string, error) {
 	}
 	qq := json.Get(resp, "user_id").ToInt64()
 	nickname := json.Get(resp, "nickname").ToString()
-	GlobalVar.botQQ = qq
-	GlobalVar.botNickname = nickname
+	globalVar.botQQ = qq
+	globalVar.botNickname = nickname
 	return qq, nickname, nil
 }
 
@@ -220,7 +230,7 @@ func (a *cqApi) GetOnlineClients(noCache bool) ([]*OnlineClient, error) {
 	if err != nil {
 		return nil, newApiError(req.Action, err.Error())
 	}
-	GlobalVar.onlineClients = onlineClients
+	globalVar.onlineClients = onlineClients
 	return onlineClients, nil
 }
 
@@ -265,7 +275,7 @@ func (a *cqApi) GetFriendList() ([]*FriendInfo, error) {
 	if err != nil {
 		return nil, newApiError(req.Action, err.Error())
 	}
-	GlobalVar.friendList = friendList
+	globalVar.friendList = friendList
 	return friendList, nil
 }
 
@@ -284,13 +294,13 @@ func (a *cqApi) GetUnidirectionalFriendList() ([]*UnidirectionalFriendInfo, erro
 	if err != nil {
 		return nil, newApiError(req.Action, err.Error())
 	}
-	GlobalVar.unidirectionalFriendList = friendList
+	globalVar.unidirectionalFriendList = friendList
 	return friendList, nil
 }
 
 // DeleteFriend 删除好友
 func (a *cqApi) DeleteFriend(userId int64) error {
-	fi := GlobalVar.friendList.Search(userId)
+	fi := globalVar.friendList.Search(userId)
 	if fi == nil {
 		return newApiError("delete_friend", "好友不存在")
 	}
@@ -308,7 +318,7 @@ func (a *cqApi) DeleteFriend(userId int64) error {
 
 // DeleteUnidirectionalFriend 删除单向好友
 func (a *cqApi) DeleteUnidirectionalFriend(userId int64) error {
-	ufi := GlobalVar.unidirectionalFriendList.Search(userId)
+	ufi := globalVar.unidirectionalFriendList.Search(userId)
 	if ufi == nil {
 		return newApiError("delete_unidirectional_friend", "单向好友不存在")
 	}
@@ -587,7 +597,7 @@ func (a *cqApi) CanSendImage() (bool, error) {
 		return false, err
 	}
 	yes := json.Get(resp, "yes").ToBool()
-	GlobalVar.canSendImg = yes
+	globalVar.canSendImg = yes
 	return yes, nil
 }
 
@@ -633,7 +643,7 @@ func (a *cqApi) CanSendRecord() (bool, error) {
 		return false, err
 	}
 	yes := json.Get(resp, "yes").ToBool()
-	GlobalVar.canSendRecord = yes
+	globalVar.canSendRecord = yes
 	return yes, nil
 }
 
@@ -749,7 +759,7 @@ func (a *cqApi) GetGroupList(noCache bool) ([]*GroupInfo, error) {
 	if err != nil {
 		return nil, newApiError(req.Action, err.Error())
 	}
-	GlobalVar.groupList = groupList
+	globalVar.groupList = groupList
 	return groupList, nil
 }
 

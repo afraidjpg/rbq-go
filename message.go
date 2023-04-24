@@ -379,6 +379,7 @@ func (c *MessageHandle) reset() {
 }
 
 // Reply 发送消息，默认向消息来源发送，如群，私聊
+// 返回的字段分别为 消息id，转发id（仅转发时返回），错误
 func (c *MessageHandle) Reply(ss ...string) (int64, string, error) {
 	for _, s := range ss {
 		c.AddCQCode(NewCQText(s))

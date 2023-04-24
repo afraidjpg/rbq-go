@@ -8,7 +8,7 @@
 
 </div>
 
-<h2>写在前面</h2>
+## 写在前面
 
 这是一个个人学习性质的项目，不能提供任何可靠性保证，包括但不限于：**代码安全与质量，相关文档，issue回复的及时性等**。
 
@@ -27,13 +27,13 @@ rbq-go是一个以go-cqhttp为后端的插件开发框架，它的目标是提�
 为了保持项目简单易懂，项目会 **尽量避免使用过于复杂的设计**
 ，降低学习成本。同时保留高级功能的空间，使之可以胜任复杂场景。期望是不再需要理解以及再封装onebot的文档，即可简单的开发插件
 
-<h2>安装</h2>
+## 安装
 
 ```
 go get -u github.com/afraidjpg/rbq-go
 ```
 
-<h2>使用</h2>
+## 使用
 
 示例代码请 [点击这里](./example)
 
@@ -88,7 +88,7 @@ func main() {
 }
 ```
 
-<h2>运行</h2>
+## 运行
 
 - 下载 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp/releases)
 - 启动 `go-cqhttp` 并使用选择正向websocket连接
@@ -135,9 +135,9 @@ func main() {
 
 ```
 
-<h2>CQ码</h2>
+## CQ码
 
-如何获取CQ码与发送CQ码：
+### 使用示例
 
 ```go
 package yourplugin
@@ -172,6 +172,7 @@ func YourPlugin(ctx *rbq.Context) {
 
 ```
 
+### 支持的CQ码
 CQ码的支持与 go-cqhttp 同步，可以[点击这里](https://github.com/Mrs4s/go-cqhttp)查看README中对CQ码的描述
 
 |    CQ码    | 进度  | 收发限制 | 备注                                                                    |
@@ -193,9 +194,39 @@ CQ码的支持与 go-cqhttp 同步，可以[点击这里](https://github.com/Mrs
 | cardimage | 完成  |  发   |                                                                       |
 |    tts    | 完成  |  发   |                                                                       |
 
-<h2>API</h2>
+## bot API
 
-实现了对 go-cqhttp 的 api 调用，可以通过 `rbq.Api` 获取 `APIWrapper` 对象，然后调用对应的方法即可
+实现了对 go-cqhttp 的 api 调用封装，可以通过 `ctx.Api` 或者 `rbq.GetBotApi()` 获取机器人api对象，
+然后调用对应的方法即可
+
+### 使用示例
+
+```go
+package yourplugin
+
+import (
+	"github.com/afraidjpg/rbq-go"
+	"log"
+	"time"
+)
+
+func BotApi(ctx *rbq.Context) {
+	msgId, _, err := ctx.Reply("阿巴阿巴阿巴")
+	if err != nil {
+		return
+	}
+
+	time.Sleep(time.Second * 5) // 5秒后撤回消息
+	err = ctx.Api.DeleteMsg(msgId)
+	// 也可以这样调用
+	// err = rbq.GetBotApi().DeleteMsg(msgId)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("撤回消息成功：", msgId)
+}
+
+```
 
 |      分类      |          名称          |             方法名             |         go-cqhttp 接口名          |    进度     |
 |:------------:|:--------------------:|:---------------------------:|:------------------------------:|:---------:|
@@ -272,4 +303,37 @@ CQ码的支持与 go-cqhttp 同步，可以[点击这里](https://github.com/Mrs
 | Go-CqHttp 相关 |  获取中文分词 ( 隐藏 API )   |        getWordSlices        |        .get_word_slices        |    完成     |
 | Go-CqHttp 相关 | 对事件执行快速操作 ( 隐藏 API ) |    handleQuickOperation     |    .handle_quick_operation     |    完成     |
 
-<h2 id="global_var"> 全局变量 </h2>
+## 全局信息
+
+内置了一些全局变量，在程序启动后可以从中获取一些全局性的信息
+
+### 使用
+
+```go
+package your_package
+
+import (
+	"github.com/afraidjpg/rbq-go"
+	"log"
+)
+
+func GlobalInfo(ctx *rbq.Context) {
+	log.Println(ctx.GlobalInfo.GetBotQQ())
+	log.Println(rbq.GetGlobalInfo().GetBotQQ())
+}
+
+```
+
+### 可用信息
+
+| 方法名 | 说明 |
+| :----: | :----: |
+| GetBotQQ | 获取机器人QQ号 |
+| GetBotNickname | 获取机器人昵称 |
+| CanSendImg | 是否可以发送图片 |
+| CanSendRecord | 是否可以发送语音 |
+| GetOnlineClients | 获取在线客户端列表 |
+| GetFriendList | 获取好友列表 |
+| GetUnidirectionalFriendList | 获取单向好友列表 |
+| GetGroupList | 获取群列表 |
+

@@ -2,7 +2,8 @@ package rbq
 
 type Context struct {
 	*MessageHandle
-	Api *ApiWrapper
+	Api        *ApiWrapper
+	GlobalInfo *Global
 }
 
 func (c *Context) init() {
