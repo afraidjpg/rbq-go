@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-var Api *ApiWrapper
+var cqapi *ApiWrapper
 
 func init() {
-	Api = newBotApi(&cqApi{})
+	cqapi = newBotApi(&cqApi{})
 }
 
 // ApiWrapper 进行一层包装，使得 cqApi 的方法可以直接调用，同时确保全局只能有一个 ApiWrapper 实例

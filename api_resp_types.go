@@ -2,20 +2,20 @@ package rbq
 
 import "math"
 
-// DeviceModel 设备信息，API.GetDeviceList 的响应参数
+// DeviceModel 设备信息，cqapi.GetDeviceList 的响应参数
 type DeviceModel struct {
 	ModelShow string `json:"model_show"`
 	NeedPay   bool   `json:"need_pay"`
 }
 
-// OnlineClient 在线客户端信息，API.GetOnlineClients 的响应参数
+// OnlineClient 在线客户端信息，cqapi.GetOnlineClients 的响应参数
 type OnlineClient struct {
 	AppId      int64  `json:"app_id"`      // 客户端ID
 	DeviceName string `json:"device_name"` // 设备名称
 	DeviceKind string `json:"device_kind"` // 设备类型
 }
 
-// StrangerInfo 陌生人信息，API.GetStrangerInfo 的响应参数
+// StrangerInfo 陌生人信息，cqapi.GetStrangerInfo 的响应参数
 type StrangerInfo struct {
 	UserId    int64  `json:"user_id"`    // QQ号
 	Nickname  string `json:"nickname"`   // 昵称
@@ -26,21 +26,21 @@ type StrangerInfo struct {
 	LoginDays int64  `json:"login_days"` // 登录天数
 }
 
-// FriendInfo 好友信息，API.GetFriendList
+// FriendInfo 好友信息，cqapi.GetFriendList
 type FriendInfo struct {
 	UserId   int64  `json:"user_id"`  // QQ号
 	Nickname string `json:"nickname"` // 昵称
 	Remark   string `json:"remark"`   // 备注
 }
 
-// UnidirectionalFriendInfo 单向好友信息，API.GetUnidirectionalFriendList 的响应参数
+// UnidirectionalFriendInfo 单向好友信息，cqapi.GetUnidirectionalFriendList 的响应参数
 type UnidirectionalFriendInfo struct {
 	UserId   int64  `json:"user_id"`  // QQ号
 	Nickname string `json:"nickname"` // 昵称
 	Source   string `json:"source"`   // 来源
 }
 
-// MessageInfoByMsgId 消息信息，API.GetMsg 的响应参数
+// MessageInfoByMsgId 消息信息，cqapi.GetMsg 的响应参数
 type MessageInfoByMsgId struct {
 	Group     bool  `json:"group"`      // 是否为群消息
 	GroupId   int64 `json:"group_id"`   // 群号
@@ -68,14 +68,14 @@ type ForwardMessageNode struct {
 	*CQRecv `json:"-"`     // CQ码消息解码器
 }
 
-// ImageInfo 图片信息，API.GetImage 的响应参数
+// ImageInfo 图片信息，cqapi.GetImage 的响应参数
 type ImageInfo struct {
 	Size     int64  `json:"size"`     // 图片大小
 	Filename string `json:"filename"` // 图片文件名
 	Url      string `json:"url"`      // 图片链接
 }
 
-// ImageOrcResult 图片识别结果，API.OcrImage 的响应参数
+// ImageOrcResult 图片识别结果，cqapi.OcrImage 的响应参数
 type ImageOrcResult struct {
 	Language string               `json:"language"` // 语言
 	Texts    []*ImageOcrResultRow `json:"texts"`    // 文本内容
@@ -88,7 +88,7 @@ type ImageOcrResultRow struct {
 	Coordinates any    `json:"coordinates"` // 坐标
 }
 
-// GroupInfo 群信息，API.GetGroupInfo 的响应参数，在 API.GetGroupList 的响应参数为数组形式
+// GroupInfo 群信息，cqapi.GetGroupInfo 的响应参数，在 cqapi.GetGroupList 的响应参数为数组形式
 // 如果机器人尚未加入群, group_create_time, group_level, max_member_count 和 member_count 将会为0
 type GroupInfo struct {
 	GroupId         int64  `json:"group_id"`          // 群号
@@ -100,7 +100,7 @@ type GroupInfo struct {
 	MaxMemberCount  int64  `json:"max_member_count"`  // 群最大成员数
 }
 
-// GroupMemberInfo 群成员信息，API.GetGroupMemberInfo 的响应参数，在 API.GetGroupMemberList 的响应参数为数组形式
+// GroupMemberInfo 群成员信息，cqapi.GetGroupMemberInfo 的响应参数，在 cqapi.GetGroupMemberList 的响应参数为数组形式
 type GroupMemberInfo struct {
 	GroupId         int64  `json:"group_id"`          // 群号
 	UserId          int64  `json:"user_id"`           // QQ号
@@ -120,7 +120,7 @@ type GroupMemberInfo struct {
 	ShutUpTimestamp int64  `json:"shut_up_timestamp"` // 禁言到期时间, 10位时间戳
 }
 
-// GroupHonorInfo 群荣誉信息，API.GetGroupHonorInfo 的响应参数
+// GroupHonorInfo 群荣誉信息，cqapi.GetGroupHonorInfo 的响应参数
 type GroupHonorInfo struct {
 	GroupId          int64                 `json:"group_id"`           // 群号
 	CurrentTalkative *GroupHonerUserInfo   `json:"current_talkative"`  // 当前龙王, 仅 type 为 talkative 或 all 时有数据
@@ -139,7 +139,7 @@ type GroupHonerUserInfo struct {
 	DayCount int64  `json:"day_count"` // 连续天数
 }
 
-// GroupSystemMsg 群系统消息，API.GetGroupSystemMsg 的响应参数
+// GroupSystemMsg 群系统消息，cqapi.GetGroupSystemMsg 的响应参数
 type GroupSystemMsg struct {
 	InvitedRequests []*GroupSysMsgInvitedRequest `json:"invited_requests"` // 邀请入群请求
 	JoinRequests    []*GroupSysMsgJoinRequest    `json:"join_requests"`    // 加群请求
@@ -168,7 +168,7 @@ type GroupSysMsgJoinRequest struct {
 	ActorUin      int64  `json:"actor_uin"`      // 操作人QQ号
 }
 
-// EssenceMsg 精华消息，API.GetEssenceMsg 的响应参数
+// EssenceMsg 精华消息，cqapi.GetEssenceMsg 的响应参数
 type EssenceMsg struct {
 	SenderId     int64  `json:"sender_id"`     // 发送者QQ号
 	SenderNick   string `json:"sender_nick"`   // 发送者昵称
@@ -179,14 +179,14 @@ type EssenceMsg struct {
 	MessageId    int64  `json:"message_id"`    // 消息ID
 }
 
-// GroupAtInfo 群 @ 相关信息，API.GetGroupAtInfo 的响应参数
+// GroupAtInfo 群 @ 相关信息，cqapi.GetGroupAtInfo 的响应参数
 type GroupAtInfo struct {
 	CanAtAll                 bool `json:"can_at_all"`                    // 是否可以 @全体成员
 	RemainAtAllCountForGroup int  `json:"remain_at_all_count_for_group"` // 群内所有管理当天剩余 @全体成员 次数
 	RemainAtAllCountForUin   int  `json:"remain_at_all_count_for_uin"`   // Bot 当天剩余 @全体成员 次数
 }
 
-// GroupNotice 群公告，API.GetGroupNotice 的响应参数
+// GroupNotice 群公告，cqapi.GetGroupNotice 的响应参数
 type GroupNotice struct {
 	SenderId    int64               `json:"sender_id"`    // 发送者QQ号
 	PublishTime int64               `json:"publish_time"` // 公告发表时间
@@ -232,7 +232,7 @@ type Folder struct {
 	TotalFileCount int64  `json:"total_file_count"` // 子文件数量
 }
 
-// GroupFileSystemInfo 群文件系统信息，API.GetGroupFileSystemInfo 的响应参数
+// GroupFileSystemInfo 群文件系统信息，cqapi.GetGroupFileSystemInfo 的响应参数
 type GroupFileSystemInfo struct {
 	FileCount  int64 `json:"file_count"`  // 文件总数
 	LimitCount int64 `json:"limit_count"` // 文件上限
@@ -250,13 +250,13 @@ func (gfs *GroupFileSystemInfo) GetTotalSpaceMB() float64 {
 	return math.Trunc(mb*100) / 100
 }
 
-// GroupFile 群文件信息，API.GetGroupRootFiles 的响应参数
+// GroupFile 群文件信息，cqapi.GetGroupRootFiles 的响应参数
 type GroupFile struct {
 	Files   []*File   `json:"files"`   // 文件列表
 	Folders []*Folder `json:"folders"` // 文件夹列表
 }
 
-// CQVersionInfo go-cqhttp 版本信息，API.GetVersionInfo 的响应参数
+// CQVersionInfo go-cqhttp 版本信息，cqapi.GetVersionInfo 的响应参数
 type CQVersionInfo struct {
 	AppName                  string `json:"app_name"`                   // 应用标识, 如 go-cqhttp 固定值
 	AppVersion               string `json:"app_version"`                // 应用版本, 如 v0.9.40-fix4
@@ -274,7 +274,7 @@ type CQVersionInfo struct {
 	Protocol                 int    `json:"protocol"`                   // 当前登陆使用协议类型
 }
 
-// CQStatus go-cqhttp 运行状态，API.GetStatus 的响应参数
+// CQStatus go-cqhttp 运行状态，cqapi.GetStatus 的响应参数
 type CQStatus struct {
 	AppInitialized bool          `json:"app_initialized"` // 原 CQHTTP 字段, 恒定为 true
 	AppEnabled     bool          `json:"app_enabled"`     // 原 CQHTTP 字段, 恒定为 true

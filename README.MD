@@ -2,12 +2,12 @@
 
 <h1>rbq-go</h1>
 <h3>一个以go-cqhttp为后端的插件开发框架</h3>
-<img src="asset/logo.png" alt="logo" width="400"/>
 
 ![](https://img.shields.io/badge/go-v1.18%2B-blue)
-[![](https://img.shields.io/badge/go--cqhttp-v1.0.0-orange)](https://github.com/Mrs4s/go-cqhttp)
+[![](https://img.shields.io/badge/go--cqhttp-v1.0.0+-orange)](https://github.com/Mrs4s/go-cqhttp)
 
 </div>
+
 <h2>写在前面</h2>
 
 这是一个个人学习性质的项目，不能提供任何可靠性保证，包括但不限于：**代码安全与质量，相关文档，issue回复的及时性等**。
