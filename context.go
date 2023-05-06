@@ -2,10 +2,15 @@ package rbq
 
 type Context struct {
 	*MessageHandle
+	Api        *ApiWrapper
+	GlobalInfo *Global
 }
 
 func (c *Context) init() {
-	c.decodeMessage()
+	if c.recv == nil {
+		return
+	}
+	c.decodeMessage(c.recv.Message)
 }
 
 func newContext(Recv *RecvNormalMsg) *Context {
@@ -16,6 +21,7 @@ func newContext(Recv *RecvNormalMsg) *Context {
 			CQRecv: newCQRecv(),
 			CQSend: newCQSend(),
 		},
+		Api: cqapi,
 	}
 	ctx.init()
 	return ctx

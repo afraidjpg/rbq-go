@@ -83,6 +83,12 @@ func cqIsPrefix(s string, pre string, pres ...string) bool {
 	return ret
 }
 
+// todo 用于确认文件路径或者url是否存在
+// 注意需要确认与cqhttp之间的连接，host是否是127.0.0.1，否则应该拒绝file://协议，因为cqhttp一定无法访问该文件
+func cqCheckFileExist(file string) bool {
+	return true
+}
+
 type CQCodeError struct {
 	e string
 	t string
@@ -315,7 +321,15 @@ func (cq *CQCode) String() string {
 	for i, v := range cq.Data {
 		// 下载线程数
 		if v.K == "c" {
-			v.V = cqValidConcurrency(v.V.(int))
+			var c int
+			if vv, ok := v.V.(string); ok {
+				c, _ = strconv.Atoi(vv)
+			} else if _, ok := v.V.(int); !ok {
+				c = 0
+			} else {
+				c = v.V.(int)
+			}
+			v.V = cqValidConcurrency(c)
 		}
 		s.WriteString(v.K)
 		s.WriteString("=")
@@ -325,7 +339,6 @@ func (cq *CQCode) String() string {
 		}
 	}
 	s.WriteString("]")
-	fmt.Println(s.String())
 	return s.String()
 }
 
@@ -431,6 +444,9 @@ func (at *CQFace) GetId() int64 {
 // magic 为是否为变声
 // cache, proxy, timeout 只有在 file 为网络路径时有效
 func NewCQRecord(file string, magic, cache, proxy bool, timeout int) (*CQCode, *CQCodeError) {
+	if !globalVar.canSendRecord {
+		return nil, newCQError("record", "当前机器人不支持发送语音")
+	}
 	if !cqIsPrefix("http://", "https://", "base64://", "file://") {
 		return nil, newCQError("video", "file必须以 [http://, https://, base64://, file://] 开头")
 	}
@@ -597,6 +613,7 @@ func (l CQLocation) GetLot() float64 {
 	return l.GetFloat64("lon")
 }
 
+
 // GetTitle 获取标题
 func (l CQLocation) GetTitle() string {
 	return l.GetString("title")
@@ -663,18 +680,24 @@ func NewCQMusic(type_ string, id int64, url, audio, title, content, image string
 // id 特效ID
 // c 下载线程数
 func NewCQImage(file, type_ string, subType int, cache bool, id int64, c int) (*CQCode, *CQCodeError) {
+	if !globalVar.canSendImg {
+		return nil, newCQError("image", "当前机器人不支持发送图片")
+	}
 	val := map[string]any{}
 	if !cqIsPrefix(file, "http://", "https://", "file://", "base64://") {
 		return nil, newCQError("image", "file必须以 [http://, https://, file://, base64://] 开头")
+	}
+	if !cqCheckFileExist(file) {
+		return nil, newCQError("image", "file不存在")
 	}
 	val["file"] = file
 	if type_ == CQImageTypeFlash || type_ == CQImageTypeShow {
 		val["type"] = type_
 	}
-	if subType >= 0 && subType <= 13 {
+	if subType > 0 && subType <= 13 {
 		val["subType"] = subType
 	}
-	if id >= CQImageIDNormal || id <= CQImageIDSeek {
+	if id > CQImageIDNormal && id <= CQImageIDSeek {
 		val["id"] = id
 	}
 	val["cache"] = cache
@@ -749,8 +772,8 @@ type CQForward struct {
 }
 
 // GetId 获取转发的消息id
-func (f *CQForward) GetId() int64 {
-	return f.GetInt64("id")
+func (f *CQForward) GetId() string {
+	return f.GetString("id")
 }
 
 // NewCQForwardNode 新建一个转发消息
@@ -797,6 +820,10 @@ func NewCQForwardNode(id int64, name string, uin int64, content, seq any) (*CQCo
 // source 可选，表示分享来源名称
 // icon 可选，表示分享来源图标url，支持 http://, https://
 func NewCQCardImage(file string, minWidth, minHeight, maxWidth, maxHeight int64, source, icon string) (*CQCode, *CQCodeError) {
+	if !globalVar.canSendImg {
+		return nil, newCQError("image", "当前机器人不支持发送图片")
+	}
+
 	if !cqIsPrefix(file, "http://", "https://", "file://", "base64://") {
 		return nil, newCQError("cardimage", "file必须以 [http://, https://, file://, base64://] 开头")
 	}
