@@ -1,28 +1,37 @@
 package rbq
 
+// EventPostType 事件上报类型
+type EventPostType string
+
 // 上报数据的类型
 const (
-	EventPostTypeMessage     = "message"      // 接受到的消息
-	EventPostTypeMessageSent = "message_sent" // 发送的消息，需配置gocqhttp的message.report-self-message=true才会上报
-	EventPostTypeNotice      = "notice"       // 通知
-	EventPostTypeRequest     = "request"      // 请求
-	EventPostTypeMetaEvent   = "meta_event"   // 元事件
+	EventPostTypeMessage     EventPostType = "message"      // 接受到的消息
+	EventPostTypeMessageSent EventPostType = "message_sent" // 发送的消息，需配置gocqhttp的message.report-self-message=true才会上报
+	EventPostTypeNotice      EventPostType = "notice"       // 通知
+	EventPostTypeRequest     EventPostType = "request"      // 请求
+	EventPostTypeMetaEvent   EventPostType = "meta_event"   // 元事件
 )
+
+// EventMessageType 消息类型
+type EventMessageType string
 
 // 消息类型，群聊 or 私聊
 const (
-	EventPostMsgTypePrivate = "private" // 私聊消息
-	EventPostMsgTypeGroup   = "group"   // 群消息
+	EventMsgTypePrivate EventMessageType = "private" // 私聊消息
+	EventMsgTypeGroup   EventMessageType = "group"   // 群消息
 )
+
+// EventMessageSubType 消息子类型
+type EventMessageSubType string
 
 // 消息子类型
 const (
-	EventPostMsgSubTypeFriend    = "friend"     // 好友消息
-	EventPostMsgSubTypeNormal    = "normal"     // 群消息
-	EventPostMsgSubTypeAnonymous = "anonymous"  // 匿名消息
-	EventPostMsgSubTypeGroupSelf = "group_self" // 群中自身发送
-	EventPostMsgSubTypeGroup     = "group"      // 群临时会话
-	EventPostMsgSubTypeNotice    = "notice"     // 系统提示
+	EventPostMsgSubTypeFriend    EventMessageSubType = "friend"     // 好友消息 - 私聊
+	EventPostMsgSubTypeNormal    EventMessageSubType = "normal"     // 群消息 - 群聊
+	EventPostMsgSubTypeAnonymous EventMessageSubType = "anonymous"  // 群匿名消息 - 群聊
+	EventPostMsgSubTypeGroupSelf EventMessageSubType = "group_self" // 群中自身发送 - 群聊
+	EventPostMsgSubTypeGroup     EventMessageSubType = "group"      // 群临时会话 - 私聊
+	EventPostMsgSubTypeNotice    EventMessageSubType = "notice"     // 系统提示 - 私聊/群聊
 )
 
 // 请求类型

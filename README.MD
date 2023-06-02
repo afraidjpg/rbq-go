@@ -221,9 +221,9 @@ func BotApi(ctx *rbq.Context) {
 	// 也可以这样调用
 	// err = rbq.GetBotApi().DeleteMsg(msgId)
 	if err != nil {
-		log.Println(err)
+		logger.Infoln(err)
 	}
-	log.Println("撤回消息成功：", msgId)
+	logger.Infoln("撤回消息成功：", msgId)
 }
 
 ```
@@ -318,8 +318,8 @@ import (
 )
 
 func GlobalInfo(ctx *rbq.Context) {
-	log.Println(ctx.GlobalInfo.GetBotQQ())
-	log.Println(rbq.GetGlobalInfo().GetBotQQ())
+	logger.Infoln(ctx.GlobalInfo.GetBotQQ())
+	logger.Infoln(rbq.GetGlobalInfo().GetBotQQ())
 }
 
 ```

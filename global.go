@@ -2,8 +2,8 @@ package rbq
 
 var globalVar = &Global{}
 
-// GetGlobalInfo 获取全局可用信息
-func GetGlobalInfo() *Global {
+// GetGlobal 获取全局可用信息
+func GetGlobal() *Global {
 	return globalVar
 }
 

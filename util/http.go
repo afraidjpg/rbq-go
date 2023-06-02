@@ -1,7 +1,7 @@
 package util
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -15,7 +15,7 @@ func HttpGet(url string) ([]byte, error) {
 		return nil, err
 	}
 
-	bodyByte, err2 := ioutil.ReadAll(resp.Body)
+	bodyByte, err2 := io.ReadAll(resp.Body)
 	if err2 != nil {
 		return nil, err2
 	}
@@ -32,7 +32,7 @@ func HttpPost(url, contentType string, body string) ([]byte, error) {
 		return nil, err
 	}
 
-	bodyByte, err2 := ioutil.ReadAll(resp.Body)
+	bodyByte, err2 := io.ReadAll(resp.Body)
 	if err2 != nil {
 		return nil, err2
 	}

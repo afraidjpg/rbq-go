@@ -4,7 +4,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -177,6 +176,8 @@ type CQCodeInterface interface {
 	Get(string) any
 	setData(k string, v any) *CQCode
 	String() string
+	UnmarshalJSON(b []byte) error
+	MarshalJSON() ([]byte, error)
 }
 
 type CQCode struct {
@@ -361,7 +362,7 @@ func (cq *CQCode) Decode(s string) {
 			var err error
 			val, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				log.Println(err)
+				logger.Warnln(err)
 			}
 		default:
 			val = v

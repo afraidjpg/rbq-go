@@ -484,7 +484,7 @@ func (a *cqApi) GetForwardMsg(forwardId string) ([]*ForwardMessageNode, error) {
 }
 
 // SendForwardMsg 发送合并转发消息的快速接口，根据 userId 判断是私聊还是群聊
-func (a *cqApi) SendForwardMsg(userId, groupId int64, forward []*CQCode) (int64, string, error) {
+func (a *cqApi) SendForwardMsg(userId, groupId int64, forward []CQCodeInterface) (int64, string, error) {
 	if userId > 0 {
 		return a.SendPrivateForwardMsg(userId, forward)
 	} else {
@@ -493,12 +493,12 @@ func (a *cqApi) SendForwardMsg(userId, groupId int64, forward []*CQCode) (int64,
 }
 
 // SendPrivateForwardMsg 发送私聊合并转发消息
-func (a *cqApi) SendPrivateForwardMsg(userId int64, forward []*CQCode) (int64, string, error) {
+func (a *cqApi) SendPrivateForwardMsg(userId int64, forward []CQCodeInterface) (int64, string, error) {
 	req := &apiReq{
 		Action: "send_private_forward_msg",
 		Params: struct {
-			UserID  int64     `json:"user_id"`
-			Forward []*CQCode `json:"forward_msg"`
+			UserID  int64             `json:"user_id"`
+			Forward []CQCodeInterface `json:"forward_msg"`
 		}{
 			UserID:  userId,
 			Forward: forward,
@@ -513,12 +513,12 @@ func (a *cqApi) SendPrivateForwardMsg(userId int64, forward []*CQCode) (int64, s
 }
 
 // SendGroupForwardMsg 发送群聊合并转发消息
-func (a *cqApi) SendGroupForwardMsg(groupId int64, forward []*CQCode) (int64, string, error) {
+func (a *cqApi) SendGroupForwardMsg(groupId int64, forward []CQCodeInterface) (int64, string, error) {
 	req := &apiReq{
 		Action: "send_group_forward_msg",
 		Params: struct {
-			GroupID int64     `json:"group_id"`
-			Forward []*CQCode `json:"forward_msg"`
+			GroupID int64             `json:"group_id"`
+			Forward []CQCodeInterface `json:"forward_msg"`
 		}{
 			GroupID: groupId,
 			Forward: forward,

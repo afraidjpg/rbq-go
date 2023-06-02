@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/afraidjpg/rbq-go/internal"
 	"github.com/gorilla/websocket"
-	"log"
 	"net/url"
 	"strings"
 	"sync"
@@ -26,7 +25,7 @@ func listenCQHTTP(cqAddr string) {
 
 	u, err := url.Parse(cqAddr)
 	if err != nil {
-		log.Fatal("url.Parse:", err)
+		logger.Fatal("url.Parse:", err)
 	}
 	wsHost = u.Hostname()
 	wsPort = u.Port()
@@ -46,15 +45,15 @@ func connectToWS(h string, p string) *websocket.Conn {
 
 	if err != nil {
 		if wsRetryCount > 50 {
-			log.Fatal("重连次数过多，已退出")
+			logger.Fatal("重连次数过多，已退出")
 		}
-		log.Println("连接失败:", err, ", 5秒后重试...")
+		logger.Warnln("连接失败:", err, ", 5秒后重试...")
 		time.Sleep(5 * time.Second)
 		wsRetryCount++
 		return connectToWS(h, p)
 	}
 	wsRetryCount = 0
-	fmt.Printf("websocket server 已连接：%s\n", u.String())
+	logger.Infoln("websocket server 已连接：%s\n", u.String())
 	return cc
 }
 
@@ -83,7 +82,7 @@ func recvDataFromCQHTTP() {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Println("read:", err)
+			logger.Errorln("read:", err)
 			reconnectToWS(wsHost, wsPort)
 			continue
 		}
@@ -103,7 +102,7 @@ func getDataFromRecvChan() []byte {
 func sendDataToCQHTTP(data []byte, echo string) []byte {
 	err := WriteToWs(data)
 	if err != nil {
-		log.Println("write:", err)
+		logger.Errorln("write:", err)
 		reconnectToWS(wsHost, wsPort)
 		return []byte("")
 	}
@@ -128,7 +127,7 @@ func listenConn() {
 	for {
 		err := WriteToWs([]byte("ping"))
 		if err != nil {
-			log.Println("连接已断开，正在重连...")
+			logger.Warnln("连接已断开，正在重连...")
 			reconnectToWS(wsHost, wsPort)
 		}
 		time.Sleep(5 * time.Second)

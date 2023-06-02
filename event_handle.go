@@ -2,62 +2,48 @@ package rbq
 
 import "strings"
 
-type Context struct {
-	BotApi    *ApiWrapper
-	Global    *Global
-	cqEncoder *CQSend
-	cqDecoder *CQRecv
-	m         *Message
-	n         *Notice
+type MessageContext struct {
+	msg        *Message
+	cqEncoder  *CQSend
+	cqDecoder  *CQRecv
+	RowMessage string
+	messageId  int64
+	userId     int64
+	groupId    int64
+	selfId     int64
 }
 
-func newContext() *Context {
-	c := &Context{
-		BotApi:    GetBotApi(),
-		Global:    GetGlobal(),
-		cqEncoder: newCQSend(),
-		cqDecoder: newCQRecv(),
-	}
-
-	return c
+func (m *MessageContext) GetMessageId() int64 {
+	return m.messageId
 }
 
-// CQBuilder 返回一个 CQBuilder 对象，用于构建回复消息的 CQ 码
-func (c *Context) CQBuilder() *CQSend {
-	return c.cqEncoder
+func (m *MessageContext) GetUserId() int64 {
+	return m.userId
 }
 
-// AddText 添加纯文本回复
-func (c *Context) AddText(m string) {
-	c.cqEncoder.AddText(m)
+func (m *MessageContext) GetGroupId() int64 {
+	return m.groupId
 }
 
-// AddImage 添加图片回复
-func (c *Context) AddImage(f string) {
-	c.cqEncoder.AddCQImage(f)
+func (m *MessageContext) GetSelfId() int64 {
+	return m.selfId
 }
 
-// AddCQCOde 添加 CQ 码，
-func (c *Context) AddCQCOde(cq CQCodeInterface) {
-	c.cqEncoder.AddCQCode(cq)
+func (m *MessageContext) CQBuilder() *CQSend {
+	return m.cqEncoder
 }
 
-func (c *Context) Reply(m string) {
-	c.cqEncoder.AddText(m)
-	c.send(c.GetUserId(), c.GetGroupId())
+func (m *MessageContext) Reply(s string) {
+	m.cqEncoder.AddText(s)
+	send(m.userId, m.groupId, m.CQBuilder())
 }
 
-func (c *Context) SendTo(userId, groupId int64) {
-	c.send(userId, groupId)
-}
-
-func (c *Context) send(userID, groupID int64) (int64, string, error) {
-	cqs := c.CQBuilder()
+func send(userID, groupID int64, cqs *CQSend) (int64, string, error) {
 	for _, err := range cqs.err {
 		logger.Warnln(err)
 	}
 
-	msg, cards, forward := c.tidyCQCode(cqs.cqm)
+	msg, cards, forward := tidyCQCode(cqs.cqm)
 
 	// 每次只会 send 一条消息，如果有多条消息可以send，会被忽略
 	var msgId int64
@@ -89,7 +75,7 @@ func (c *Context) send(userID, groupID int64) (int64, string, error) {
 	return msgId, forwardId, err
 }
 
-func (c *Context) tidyCQCode(cqm map[string][]CQCodeInterface) (string, []string, []CQCodeInterface) {
+func tidyCQCode(cqm map[string][]CQCodeInterface) (string, []string, []CQCodeInterface) {
 	var msg string                // 可以合并一次性发送的cq码
 	var card []string             // 一次发送只能有一个的cq码
 	var forward []CQCodeInterface // 合并转发，该消息类型比较特殊

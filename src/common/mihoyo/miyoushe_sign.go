@@ -10,7 +10,6 @@ import (
 	"github.com/gocolly/colly/v2"
 	"github.com/gocolly/colly/v2/extensions"
 	"github.com/google/uuid"
-	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -26,12 +25,12 @@ func DoMYSGenshinSign(uid int64, cookie string) (bool, error) {
 
 	if err != nil {
 		ne := fmt.Errorf("uid：%d 的签到状态失败，原因：%s", uid, err)
-		log.Printf(ne.Error())
+		logger.Printf(ne.Error())
 		return false, ne
 	}
 	if isS {
 		ne := fmt.Errorf("uid：%d 已经签到过了", uid)
-		log.Printf(ne.Error())
+		logger.Printf(ne.Error())
 		return false, ne
 	}
 
@@ -39,11 +38,11 @@ func DoMYSGenshinSign(uid int64, cookie string) (bool, error) {
 	succ, err := sign(uid, cookie)     // 执行签到
 	if succ == false || err != nil {
 		ne := fmt.Errorf("uid：%d 签到发生错误, %w", uid, err)
-		log.Printf(ne.Error())
+		logger.Printf(ne.Error())
 		return false, ne
 	}
 
-	log.Printf("用户uid：%d 签到成功", uid)
+	logger.Printf("用户uid：%d 签到成功", uid)
 	return true, nil
 }
 
