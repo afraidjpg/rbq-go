@@ -46,8 +46,8 @@ import (
 )
 
 // YourPlugin 这是你的插件本体
-func YourPlugin(ctx *rbq.Context) {
-	msg := ctx.GetMessage()
+func YourPlugin(ctx *rbq.MessageContext) {
+	msg := ctx.R()
 	if msg == "hello world" {
 		ctx.Reply("welcome")
 		return

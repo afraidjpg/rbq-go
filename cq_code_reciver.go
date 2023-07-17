@@ -41,6 +41,7 @@ func (cqr *CQRecv) decodeMessage(s string) {
 	p := regexp.MustCompile(`\[CQ:.*?]`)
 	sp := p.Split(s, -1)
 	cqr.pureText = strings.Join(sp, "")
+	strings.HasPrefix(s, "[CQ:")
 	cq := p.FindAllString(s, -1)
 	for _, v := range cq {
 		cqCode := cqDecodeFromString(v)

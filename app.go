@@ -6,46 +6,29 @@ const (
 )
 
 type App struct {
-	status int
-	hook   map[string]func(ctx *Context)
+	status  int
+	handler *Handlers
 }
 
 var rbqApp *App
 
-func (a *App) bind(f eventFunc, optFunc ...any) {
-
-}
-
-func (a *App) GetPluginLoader() *PluginGroup {
+func (a *App) GetHandleManager() *Handlers {
 	if a.status != appStatusInit {
 		logger.Errorln("插件加载器只能在初始化时获取")
 		return nil
 	}
-	return getPluginLoader()
-}
-
-// AddHook 添加钩子 todo 这里只是一个最简单实现，后续需要完善
-func (a *App) AddHook(pos string, h func(ctx *Context)) {
-	if a.hook == nil {
-		a.hook = make(map[string]func(ctx *Context))
-	}
-	a.hook[pos] = h
+	return a.handler
 }
 
 func (a *App) Run(cqAddr string) {
-	a.status = 2
 	listenCQHTTP(cqAddr) // 连接到cqhttp
 	a.initBot()          // 初始化机器人信息
+	a.status = appStatusRunning
 	a.start()
 }
 
 func (a *App) start() {
-	go pl.startup() // 启动插件
-	a.started()     // 启动后的一些操作
-}
-
-func (a *App) started() {
-	a.status = appStatusRunning
+	go a.handler.startup() // 启动插件
 }
 
 func (a *App) initBot() {
@@ -99,7 +82,8 @@ func NewApp() *App {
 		return nil
 	}
 	rbqApp = &App{
-		status: appStatusInit,
+		status:  appStatusInit,
+		handler: newHandlers(),
 	}
 	return rbqApp
 }
