@@ -2,6 +2,6 @@ package internal
 
 import "github.com/google/uuid"
 
-func RandomName() string {
+func RandomSting() string {
 	return uuid.Must(uuid.NewRandom()).String()
 }

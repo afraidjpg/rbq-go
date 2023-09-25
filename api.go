@@ -62,13 +62,14 @@ func (a *apiReq) Send(needResp bool) ([]byte, error) {
 		return []byte(""), newApiError("", "action is empty")
 	}
 	if needResp {
-		a.Echo = internal.RandomName()
+		a.Echo = internal.RandomSting()
 	}
 
 	j, err := json.Marshal(a)
 	if err != nil {
 		return []byte(""), newApiError(a.Action, err.Error())
 	}
+	logger.Debugln("调用CQ API:", a.Action, ", params:", string(j))
 	resp := sendDataToCQHTTP(j, a.Echo)
 	if !needResp {
 		return resp, nil
