@@ -25,7 +25,7 @@ type MessageContext struct {
 
 func newMessageContext(msg *Message) *MessageContext {
 	return &MessageContext{
-		mode:       readOnly,
+		mode:       readWrite,
 		msg:        msg,
 		cqEncoder:  newCQSend(),
 		cqDecoder:  newCQRecv(),
@@ -52,8 +52,8 @@ func (m *MessageContext) Text(s ...string) {
 func (m *MessageContext) CQBuilder() *CQSend {
 	if m.mode == readOnly {
 		logger.Warnln("只读模式下无法使用 CQBuilder")
-		return nil
 	}
+	m.cqEncoder.mode = m.mode
 	return m.cqEncoder
 }
 

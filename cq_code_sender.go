@@ -1,15 +1,17 @@
 package rbq
 
 type CQSend struct {
-	cq  []CQCodeInterface
-	cqm map[string][]CQCodeInterface
-	err []error
+	cq   []CQCodeInterface
+	cqm  map[string][]CQCodeInterface
+	err  []error
+	mode mode
 }
 
 func newCQSend() *CQSend {
 	return &CQSend{
-		cq:  make([]CQCodeInterface, 0, 5),
-		cqm: make(map[string][]CQCodeInterface),
+		cq:   make([]CQCodeInterface, 0, 5),
+		cqm:  make(map[string][]CQCodeInterface),
+		mode: readOnly,
 	}
 }
 
@@ -21,6 +23,9 @@ func (cqs *CQSend) cqReset() {
 
 // AddCQCode 添加CQ码
 func (cqs *CQSend) AddCQCode(cq CQCodeInterface) *CQSend {
+	if cqs.mode == readOnly {
+		return cqs
+	}
 	if cq == nil {
 		return cqs
 	}

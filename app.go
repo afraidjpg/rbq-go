@@ -28,7 +28,7 @@ func (a *App) Run(cqAddr string) {
 }
 
 func (a *App) start() {
-	go a.handler.startup() // 启动插件
+	a.handler.startup() // 启动插件
 }
 
 func (a *App) initBot() {
