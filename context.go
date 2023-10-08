@@ -63,6 +63,7 @@ func (m *MessageContext) Reply(s string) {
 		return
 	}
 	m.cqEncoder.AddText(s)
+	logger.Debugln(m.CQBuilder().cqm)
 	send(m.msg.UserId, m.msg.GroupId, m.CQBuilder())
 }
 
@@ -113,6 +114,7 @@ func tidyCQCode(cqm map[string][]CQCodeInterface) (string, []string, []CQCodeInt
 		switch t {
 		case "text", "face", "at", "image", "reply":
 			for _, cq := range cqs {
+				logger.Debugln("cq_content", cq.String())
 				sb.WriteString(cq.String())
 			}
 		case "node":

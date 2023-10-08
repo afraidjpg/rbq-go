@@ -45,30 +45,29 @@ func (a *App) initBot() {
 	if err != nil {
 		panic(err)
 	}
-	logger.Infoln("加载机器人语音发送状态成功，当前状态: ", canSR)
+	logger.Infof("加载机器人语音发送状态成功，当前状态: %t\n", canSR)
 
 	conSI, err := cqapi.CanSendImage() // 获取机器人是否可以发送图片
 	if err != nil {
 		panic(err)
 	}
-	logger.Infoln("加载机器人图片发送状态成功，当前状态: ", conSI)
+	logger.Infof("加载机器人图片发送状态成功，当前状态: %t\n", conSI)
 
-	// todo 下面的信息需要设置一个缓存，否则每次启动都调用可能是及其耗时的
 	fl, err := cqapi.GetFriendList()
 	if err != nil {
-		logger.Errorln("加载好友列表失败, ", err)
+		logger.Errorf("加载好友列表失败, %s\n", err)
 	}
 	logger.Infof("加载好友列表成功，当前共加载 %d 位好友\n", len(fl))
 
 	ufl, err := cqapi.GetUnidirectionalFriendList()
 	if err != nil {
-		logger.Errorln("加载单向好友列表失败, ", err)
+		logger.Errorf("加载单向好友列表失败, %s\n", err)
 	}
 	logger.Infof("加载单向好友列表成功，当前共加载 %d 位单向好友\n", len(ufl))
 
 	gl, err := cqapi.GetGroupList(true)
 	if err != nil {
-		logger.Errorln("加载群列表失败, ", err)
+		logger.Errorf("加载群列表失败, %s\n", err)
 	}
 	logger.Infof("加载群列表成功，当前共加载 %d 个群\n", len(gl))
 

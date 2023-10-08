@@ -152,7 +152,7 @@ func WithRecoverFunc(rcv RecoverFunc) MsgHandleOption {
 func (h *Handlers) startup() {
 	for {
 		byteData := getDataFromRecvChan()
-		logger.Infoln("接收到数据：", string(byteData))
+		logger.Infof("接收到数据：%s\n", string(byteData))
 		postType, err := jsonparser.GetString(byteData, "post_type")
 		if err != nil || postType == "" {
 			logger.Warnln("获取不到信息类型，pass...")

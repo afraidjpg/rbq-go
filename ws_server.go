@@ -53,7 +53,7 @@ func connectToWS(h string, p string) *websocket.Conn {
 		return connectToWS(h, p)
 	}
 	wsRetryCount = 0
-	logger.Infoln("websocket server 已连接：%s\n", u.String())
+	logger.Infof("websocket server 已连接：%s\n", u.String())
 	return cc
 }
 
