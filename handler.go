@@ -163,7 +163,6 @@ func (h *Handlers) startup() {
 		case "message":
 			go h.startupMsgHandler(byteData)
 		}
-
 	}
 }
 

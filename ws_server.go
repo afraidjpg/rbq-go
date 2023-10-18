@@ -89,9 +89,12 @@ func recvDataFromCQHTTP() {
 		//fmt.Println(string(message))
 		echo := json.Get(message, "echo").ToString()
 		if echo != "" {
-			wsRespMap.Store(echo, message)
+			if respCh, ok := wsRespMap.Load(echo); ok {
+				respCh.(chan []byte) <- message
+			}
 			continue
 		}
+
 		recvChan <- message
 	}
 }
@@ -102,36 +105,49 @@ func getDataFromRecvChan() []byte {
 func sendDataToCQHTTP(data []byte, echo string) []byte {
 	err := WriteToWs(data)
 	if err != nil {
-		logger.Errorln("write:", err)
+		logger.Errorln("向websocket发送消息失败:", err)
 		reconnectToWS(wsHost, wsPort)
 		return []byte("")
 	}
 	if echo != "" {
-		startTime := time.Now()
-		for {
-			resp, ok := wsRespMap.Load(echo)
-			if ok {
-				wsRespMap.Delete(echo)
-				return resp.([]byte)
-			}
-			if time.Now().Sub(startTime) > maxRespWaitTime {
-				return []byte("api超时未响应")
-			}
-			time.Sleep(10 * time.Millisecond)
+		wsRespMap.Store(echo, make(chan []byte, 1))
+		respCh, _ := wsRespMap.Load(echo)
+		resp := []byte("")
+		select {
+		case resp = <-respCh.(chan []byte):
+			wsRespMap.Delete(echo)
+		case <-time.After(maxRespWaitTime):
+			resp = []byte("api超时未响应")
 		}
+		close(respCh.(chan []byte))
+		wsRespMap.Delete(echo)
+		return resp
+		//startTime := time.Now()
+		//for {
+		//	resp, ok := wsRespMap.Load(echo)
+		//	if ok {
+		//		wsRespMap.Delete(echo)
+		//		return resp.([]byte)
+		//	}
+		//	if time.Now().Sub(startTime) > maxRespWaitTime {
+		//		return []byte("api超时未响应")
+		//	}
+		//	time.Sleep(10 * time.Millisecond)
+		//}
 	}
 	return []byte("")
 }
 
 func listenConn() {
-	for {
-		err := WriteToWs([]byte("ping"))
-		if err != nil {
-			logger.Warnln("连接已断开，正在重连...")
-			reconnectToWS(wsHost, wsPort)
-		}
-		time.Sleep(5 * time.Second)
-	}
+	//先不开启心跳检测链接
+	//for {
+	//	err := WriteToWs([]byte("ping"))
+	//	if err != nil {
+	//		logger.Warnln("连接已断开，正在重连...")
+	//		reconnectToWS(wsHost, wsPort)
+	//	}
+	//	time.Sleep(5 * time.Second)
+	//}
 }
 
 var wsrLock = &sync.Mutex{}

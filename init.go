@@ -22,7 +22,7 @@ func init() {
 		FunctionKey:    zapcore.OmitKey,
 		MessageKey:     "msg",
 		StacktraceKey:  "stacktrace",
-		LineEnding:     "  ",
+		LineEnding:     "\n",
 		EncodeLevel:    cEncodeLevel,
 		EncodeTime:     cEncodeTime,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
